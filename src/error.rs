@@ -269,7 +269,7 @@ impl ErrorCode {
     /// Creates an `Error` from the error code and the given source error
     pub(crate) fn and_source<E>(self, source: E) -> Error
     where
-        E: std::error::Error + Send + Sync + 'static,
+        E: Into<anyhow::Error>,
     {
         Error {
             code: self,
