@@ -5,4 +5,4 @@
 
 pub use self::error::{Error, ErrorCode, Result};
 
-mod error;
+pub(crate) mod error;
