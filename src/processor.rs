@@ -26,8 +26,36 @@ impl ProcessorOptions {
     /// Checks if the given string is a keyword.
     ///
     /// See <https://www.w3.org/TR/2019/WD-json-ld11-20191018/#syntax-tokens-and-keywords>.
-    pub(crate) fn is_keyword(&self, _: &str) -> bool {
-        unimplemented!()
+    pub(crate) fn is_keyword(&self, s: &str) -> bool {
+        /// Keywords in JSON-LD 1.1.
+        ///
+        /// See <https://www.w3.org/TR/2019/WD-json-ld11-20191018/#syntax-tokens-and-keywords>.
+        const KEYWORDS_1_1: &[&str] = &[
+            "@base",
+            "@container",
+            "@context",
+            "@direction",
+            "@graph",
+            "@id",
+            "@import",
+            "@included",
+            "@index",
+            "@json",
+            "@language",
+            "@list",
+            "@nest",
+            "@none",
+            "@prefix",
+            "@propagate",
+            "@protected",
+            "@reverse",
+            "@set",
+            "@type",
+            "@value",
+            "@version",
+            "@vocab",
+        ];
+        KEYWORDS_1_1.contains(&s)
     }
 
     /// Returns the base IRI.
