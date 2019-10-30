@@ -1,0 +1,17 @@
+language: rust
+cache: cargo
+rust:
+  # Comment out until Rust 1.39 is released
+  #- stable
+  - beta
+  - nightly
+  # Comment out until Rust 1.39 is released
+  #- 1.39.0
+matrix:
+  allow_failures:
+    - rust: nightly
+script:
+  - cargo build --verbose --all --all-features
+  - cargo test --verbose --all --all-features
+notifications:
+  email: false

@@ -1,0 +1,23 @@
+[package]
+name = "json-ld"
+version = "0.0.0"
+authors = ["YOSHIOKA Takuma <lo48576@hard-wi.red>"]
+edition = "2018"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+description = "JSON-LD processing library"
+repository = "https://github.com/lo48576/json-ld"
+keywords = ["JSON-LD"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package.metadata.docs.rs]
+all-features = true
+
+[dependencies]
+anyhow = "1.0.18"
+thiserror = "1.0.4"
+
+[badges]
+maintenance = { status = "experimental" }
+travis-ci = { repository = "lo48576/json-ld" }
