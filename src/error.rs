@@ -204,6 +204,10 @@ pub enum ErrorCode {
     ///
     /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-protected-term-redefinition>.
     ProtectedTermRedefinition,
+    /// Uncategorized errors (not specified in the spec).
+    ///
+    /// This may include spec ambiguity and internal processor error.
+    Uncategorized,
 }
 
 impl ErrorCode {
@@ -258,6 +262,7 @@ impl ErrorCode {
             Self::MultipleContextLinkHeaders => "multiple context link header",
             Self::ProcessingModeConflict => "processing mode conflict",
             Self::ProtectedTermRedefinition => "protected term redefinition",
+            Self::Uncategorized => "uncategorized error",
         }
     }
 
