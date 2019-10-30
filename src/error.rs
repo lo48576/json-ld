@@ -204,6 +204,10 @@ pub enum ErrorCode {
     ///
     /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-protected-term-redefinition>.
     ProtectedTermRedefinition,
+    /// Uncategorized errors (not specified in the spec).
+    ///
+    /// This may include spec ambiguity and internal processor error.
+    Uncategorized,
 }
 
 impl ErrorCode {
@@ -258,13 +262,14 @@ impl ErrorCode {
             Self::MultipleContextLinkHeaders => "multiple context link header",
             Self::ProcessingModeConflict => "processing mode conflict",
             Self::ProtectedTermRedefinition => "protected term redefinition",
+            Self::Uncategorized => "uncategorized error",
         }
     }
 
     /// Creates an `Error` from the error code and the given source error
     pub(crate) fn and_source<E>(self, source: E) -> Error
     where
-        E: std::error::Error + Send + Sync + 'static,
+        E: Into<anyhow::Error>,
     {
         Error {
             code: self,
