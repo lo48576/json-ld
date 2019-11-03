@@ -23,6 +23,12 @@ impl ProcessorOptions {
         self.document_iri.as_ref()
     }
 
+    /// Checks if the processing mode is `json-ld-1.0`.
+    pub(crate) fn is_processing_mode_1_0(&self) -> bool {
+        // Currently unsupported.
+        false
+    }
+
     /// Checks if the given string is a keyword.
     ///
     /// See <https://www.w3.org/TR/2019/WD-json-ld11-20191018/#syntax-tokens-and-keywords>.

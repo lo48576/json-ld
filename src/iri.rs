@@ -44,6 +44,27 @@ pub(crate) fn to_prefix_and_suffix(s: &str) -> Option<(&str, &str)> {
 }
 
 /// Checks whether the given string is has the form of an absolute IRI.
+pub(crate) fn is_compact_iri(s: &str) -> bool {
+    IriCategory::from(s) == IriCategory::CompactIri
+}
+
+/// Checks whether the given string is has the form of an absolute IRI.
 pub(crate) fn is_absolute_iri(s: &str) -> bool {
     IriCategory::from(s) == IriCategory::AbsoluteIri
+}
+
+/// Checks whether the given string is has the form of an absolute IRI.
+pub(crate) fn is_absolute_or_blank_node_ident(s: &str) -> bool {
+    match IriCategory::from(s) {
+        IriCategory::AbsoluteIri | IriCategory::BlankNodeIdentifier => true,
+        _ => false,
+    }
+}
+
+/// Checks is the given ASCII byte is `gen-delims` character.
+pub(crate) fn is_gen_delims_byte(b: u8) -> bool {
+    match b {
+        b':' | b'/' | b'?' | b'#' | b'[' | b']' | b'@' => true,
+        _ => false,
+    }
 }

@@ -9,8 +9,10 @@ use serde_json::{Map as JsonMap, Value};
 
 use crate::{error::Result, json::Nullable, processor::ProcessorOptions};
 
+use self::create_term_def::{create_term_definition, OptionalParams};
 pub(crate) use self::definition::Definition;
 
+mod create_term_def;
 mod definition;
 
 /// JSON-LD context.
@@ -48,17 +50,31 @@ impl Context {
             .and_then(|v| v.as_ref().into())
     }
 
+    /// Removes the given term definition.
+    ///
+    /// This does nothing if the given term is not in the context.
+    pub(crate) fn remove_term_definition(&mut self, term: &str) -> Option<Nullable<Definition>> {
+        self.term_definitions.remove(term)
+    }
+
     /// Runs create term definition algorithm.
     ///
     /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#create-term-definition>.
     pub(crate) fn create_term_definition(
         &mut self,
-        _processor: &ProcessorOptions,
-        _local_context: &JsonMap<String, Value>,
-        _term: &str,
-        _defined: &mut HashMap<String, bool>,
+        processor: &ProcessorOptions,
+        local_context: &JsonMap<String, Value>,
+        term: &str,
+        defined: &mut HashMap<String, bool>,
     ) -> Result<()> {
-        unimplemented!()
+        create_term_definition(
+            processor,
+            self,
+            local_context,
+            term,
+            defined,
+            OptionalParams::new(),
+        )
     }
 
     /// Returns the vocabulary mapping.

@@ -187,6 +187,14 @@ impl<'a> ExpandIriOptions<'a> {
 
     /// Runs IRI expansion algorithm for string value.
     ///
+    /// This may return one of the below:
+    ///
+    /// * `Ok(Some(absolute_iri_reference))`
+    /// * `Ok(Some(blank_node_identifier))`
+    /// * `Ok(None)`
+    ///     + This means the value is successfully expanded to `null`.
+    /// * `Err(_)`
+    ///
     /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#iri-expansion>.
     pub(crate) fn expand_str(
         self,

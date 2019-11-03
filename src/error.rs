@@ -266,7 +266,7 @@ impl ErrorCode {
         }
     }
 
-    /// Creates an `Error` from the error code and the given source error
+    /// Creates an `Error` from the error code and the given source error.
     pub(crate) fn and_source<E>(self, source: E) -> Error
     where
         E: Into<anyhow::Error>,
@@ -276,6 +276,20 @@ impl ErrorCode {
             source: Some(source.into()),
         }
     }
+
+    /*
+    /// Creates an `Error` from the error code and the given source error generator.
+    pub(crate) fn with_source<E, F>(self, f: F) -> Error
+    where
+        E: Into<anyhow::Error>,
+        F: FnOnce() -> E,
+    {
+        Error {
+            code: self,
+            source: Some(f().into()),
+        }
+    }
+    */
 }
 
 impl fmt::Display for ErrorCode {
