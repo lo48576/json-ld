@@ -6,7 +6,7 @@ use std::borrow::Cow;
 
 use iri_string::types::{IriStr, IriString};
 
-use crate::{context::Context, json::Nullable};
+use crate::{context::Context, json::Nullable, remote::LoadRemoteDocument};
 
 /// JSON-LD processor options.
 ///
@@ -79,5 +79,28 @@ impl ProcessorOptions {
             Some(Nullable::Null) => None,
             None => Some(Cow::Borrowed(self.document_iri())),
         }
+    }
+}
+
+/// JSON-LD processor.
+///
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#the-jsonldprocessor-interface>
+/// and <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#the-jsonldoptions-type>.
+pub struct Processor<L> {
+    /// Processor options (except a loader).
+    options: ProcessorOptions,
+    /// Remote context loader.
+    loader: L,
+}
+
+impl<L: LoadRemoteDocument> Processor<L> {
+    /// Returns processor options.
+    pub fn options(&self) -> &ProcessorOptions {
+        &self.options
+    }
+
+    /// Returns processor options.
+    pub fn loader(&self) -> &L {
+        &self.loader
     }
 }

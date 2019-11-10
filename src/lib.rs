@@ -9,7 +9,7 @@ pub use async_trait;
 pub use self::{
     context::Context,
     error::{Error, ErrorCode, Result},
-    processor::ProcessorOptions,
+    processor::{Processor, ProcessorOptions},
     remote::{LoadRemoteDocument, RemoteDocument},
 };
 
