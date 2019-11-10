@@ -1,17 +1,24 @@
 language: rust
 cache: cargo
 rust:
-  # Comment out until Rust 1.39 is released
-  #- stable
+  - stable
   - beta
-  - nightly
-  # Comment out until Rust 1.39 is released
-  #- 1.39.0
+  #- nightly
+  - 1.39.0
+jobs:
+  include:
+    - rust: 1.39.0
+      env: TEST_MINIMAL_VERSIONS=1
 matrix:
   allow_failures:
     - rust: nightly
 script:
-  - cargo build --verbose --all --all-features
-  - cargo test --verbose --all --all-features
+  - |
+    if [ "${TEST_MINIMAL_VERSIONS:-0}" -ne 0 ] ; then
+        rustup install nightly
+        cargo +nightly update -Z minimal-versions
+    fi
+  - cargo build --verbose --workspace --all-features
+  - cargo test --verbose --workspace --all-features
 notifications:
   email: false
