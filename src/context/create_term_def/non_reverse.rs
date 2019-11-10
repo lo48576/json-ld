@@ -179,7 +179,13 @@ async fn process_iri<L: LoadRemoteDocument>(
             Value::Null => {
                 // > If value contains the `@id` entry is `null`, the term is not used for IRI
                 // > expansion, but is retained to be able to detect future redefinitions of this term.
-                unimplemented!("TODO: What to do if `@id` is null?");
+                //
+                // This seems essentially not changed from JSON-LD-API 1.0, so return from this
+                // function here.
+                active_context
+                    .term_definitions
+                    .insert(term.to_owned(), Nullable::Null);
+                return Ok(());
             }
             // Step 16.3-
             // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
