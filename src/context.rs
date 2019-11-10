@@ -60,7 +60,7 @@ impl Context {
     /// Runs create term definition algorithm.
     ///
     /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#create-term-definition>.
-    pub(crate) fn create_term_definition(
+    pub(crate) async fn create_term_definition(
         &mut self,
         processor: &ProcessorOptions,
         local_context: &JsonMap<String, Value>,
@@ -75,6 +75,7 @@ impl Context {
             defined,
             OptionalParams::new(),
         )
+        .await
     }
 
     /// Returns the vocabulary mapping.

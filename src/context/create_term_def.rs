@@ -1,6 +1,6 @@
 //! "Create term definition" algorithm.
 
-use std::{borrow::Cow, collections::HashMap, convert::TryFrom};
+use std::{borrow::Cow, collections::HashMap, convert::TryFrom, future::Future, pin::Pin};
 
 use anyhow::anyhow;
 use serde_json::{Map as JsonMap, Value};
@@ -51,7 +51,31 @@ impl OptionalParams {
 /// Runs create term definition algorithm.
 ///
 /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#create-term-definition>
-pub(crate) fn create_term_definition(
+pub(crate) fn create_term_definition<'a>(
+    processor: &'a ProcessorOptions,
+    active_context: &'a mut Context,
+    local_context: &'a JsonMap<String, Value>,
+    term: &'a str,
+    defined: &'a mut HashMap<String, bool>,
+    optional: OptionalParams,
+) -> Pin<Box<dyn Future<Output = Result<()>> + 'a + Send>> {
+    Box::pin(async move {
+        create_term_definition_impl(
+            processor,
+            active_context,
+            local_context,
+            term,
+            defined,
+            optional,
+        )
+        .await
+    })
+}
+
+/// Runs create term definition algorithm.
+///
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#create-term-definition>
+async fn create_term_definition_impl(
     processor: &ProcessorOptions,
     active_context: &mut Context,
     local_context: &JsonMap<String, Value>,
@@ -200,7 +224,8 @@ pub(crate) fn create_term_definition(
             // as WD-json-ld11-api-20191018 has ambiguity.
             let ty = ExpandIriOptions::mutable(active_context, local_context, defined)
                 .vocab(true)
-                .expand_str(processor, ty)?
+                .expand_str(processor, ty)
+                .await?
                 .ok_or_else(|| {
                     ErrorCode::InvalidTypeMapping
                         .and_source(anyhow!("@type ({:?}) is expanded to `null`", ty))
@@ -246,6 +271,7 @@ pub(crate) fn create_term_definition(
             reverse,
             definition,
         )
+        .await
     } else {
         run_for_non_reverse(
             processor,
@@ -259,6 +285,7 @@ pub(crate) fn create_term_definition(
             previous_definition,
             simple_term,
         )
+        .await
     }
 }
 
@@ -269,7 +296,7 @@ pub(crate) fn create_term_definition(
 // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
 // as WD-json-ld11-api-20191018 has ambiguity.
 #[allow(clippy::too_many_arguments)] // TODO: FIXME
-fn run_for_reverse(
+async fn run_for_reverse(
     processor: &ProcessorOptions,
     active_context: &mut Context,
     local_context: &JsonMap<String, Value>,
@@ -312,7 +339,8 @@ fn run_for_reverse(
     // as WD-json-ld11-api-20191018 has ambiguity.
     let reverse = ExpandIriOptions::mutable(active_context, local_context, defined)
         .vocab(true)
-        .expand_str(processor, reverse)?
+        .expand_str(processor, reverse)
+        .await?
         .ok_or_else(|| {
             ErrorCode::InvalidIriMapping
                 .and_source(anyhow!("@reverse ({:?}) is expanded to `null`", reverse))
@@ -369,7 +397,7 @@ fn run_for_reverse(
 // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
 // as WD-json-ld11-api-20191018 has ambiguity.
 #[allow(clippy::too_many_arguments)] // TODO: FIXME
-fn run_for_non_reverse(
+async fn run_for_non_reverse(
     processor: &ProcessorOptions,
     active_context: &mut Context,
     local_context: &JsonMap<String, Value>,
@@ -419,7 +447,8 @@ fn run_for_non_reverse(
                 // as WD-json-ld11-api-20191018 has ambiguity.
                 let id = ExpandIriOptions::mutable(active_context, local_context, defined)
                     .vocab(true)
-                    .expand_str(processor, id)?
+                    .expand_str(processor, id)
+                    .await?
                     .ok_or_else(|| {
                         ErrorCode::InvalidIriMapping
                             .and_source(anyhow!("@id ({:?}) is expanded to `null`", id))
@@ -481,7 +510,8 @@ fn run_for_non_reverse(
                     prefix,
                     defined,
                     optional,
-                )?;
+                )
+                .await?;
             }
             // Step 17.2
             // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
@@ -508,7 +538,8 @@ fn run_for_non_reverse(
                 // Step 18.2
                 let resolved = ExpandIriOptions::constant(active_context)
                     .vocab(true)
-                    .expand_str(processor, term)?
+                    .expand_str(processor, term)
+                    .await?
                     .ok_or_else(|| {
                         ErrorCode::InvalidIriMapping.and_source(anyhow!(
                             "Expected an absolute IRI reference as resolved term, \
@@ -554,7 +585,7 @@ fn run_for_non_reverse(
         // Step 21.1
         // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
         // as WD-json-ld11-api-20191018 has ambiguity.
-        let container = validate_container_non_reverse(container)?;
+        let container = validate_container_non_reverse(container).await?;
         // Step 21.2
         // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
         // as WD-json-ld11-api-20191018 has ambiguity.
@@ -832,7 +863,7 @@ fn run_for_non_reverse(
 /// Validates `@container` value.
 ///
 /// Returns `Ok(container)` if the value is valid, `Err(_)` otherwise.
-fn validate_container_non_reverse(container: &Value) -> Result<Container> {
+async fn validate_container_non_reverse(container: &Value) -> Result<Container> {
     let container = Container::try_from(container)
         .map_err(|e| ErrorCode::InvalidContainerMapping.and_source(e))?;
     let arr = match container {

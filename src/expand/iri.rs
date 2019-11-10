@@ -170,7 +170,11 @@ impl<'a> ExpandIriOptions<'a> {
     }
 
     /// Runs "create term definition" algorithm if necessary.
-    fn create_term_definition(&mut self, processor: &ProcessorOptions, value: &str) -> Result<()> {
+    async fn create_term_definition(
+        &mut self,
+        processor: &ProcessorOptions,
+        value: &str,
+    ) -> Result<()> {
         if let ExpandIriContext::Mutable {
             active_context,
             local_context,
@@ -178,7 +182,9 @@ impl<'a> ExpandIriOptions<'a> {
         } = &mut self.context
         {
             if local_context.contains_key(value) && defined.get(value) != Some(&true) {
-                active_context.create_term_definition(processor, local_context, value, defined)?;
+                active_context
+                    .create_term_definition(processor, local_context, value, defined)
+                    .await?;
             }
         }
 
@@ -196,21 +202,26 @@ impl<'a> ExpandIriOptions<'a> {
     /// * `Err(_)`
     ///
     /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#iri-expansion>.
-    pub(crate) fn expand_str(
+    pub(crate) async fn expand_str(
         self,
         processor: &ProcessorOptions,
         value: &'a str,
     ) -> Result<Option<Cow<'a, str>>> {
-        expand_str(self, processor, value)
+        expand_str(self, processor, value).await
     }
 
     /// Runs IRI expansion algorithm for string value and returns JSON value.
     ///
     /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#iri-expansion>.
     #[allow(dead_code)]
-    pub(crate) fn expand_to_json(self, processor: &ProcessorOptions, value: &str) -> Result<Value> {
+    pub(crate) async fn expand_to_json(
+        self,
+        processor: &ProcessorOptions,
+        value: &str,
+    ) -> Result<Value> {
         Ok(self
-            .expand_str(processor, value)?
+            .expand_str(processor, value)
+            .await?
             .map_or(Value::Null, |s| Value::String(s.into())))
     }
 }
@@ -218,7 +229,7 @@ impl<'a> ExpandIriOptions<'a> {
 /// Runs IRI expansion algorithm for string value.
 ///
 /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#iri-expansion>.
-fn expand_str<'a>(
+async fn expand_str<'a>(
     mut options: ExpandIriOptions<'a>,
     processor: &ProcessorOptions,
     value: &'a str,
@@ -233,7 +244,7 @@ fn expand_str<'a>(
         return Ok(None);
     }
     // Step 3
-    options.create_term_definition(processor, value)?;
+    options.create_term_definition(processor, value).await?;
     // Step 4
     if let Some(keyword) = options
         .active_context()
@@ -266,7 +277,7 @@ fn expand_str<'a>(
             return Ok(Some(Cow::Borrowed(value)));
         }
         // Step 6.3
-        options.create_term_definition(processor, prefix)?;
+        options.create_term_definition(processor, prefix).await?;
         // Step 6.4
         // NOTE: Treat prefix as not defined if it is mapped to `null`.
         if let Some(prefix_def) = options
