@@ -164,8 +164,10 @@ async fn create_term_definition_impl<L: LoadRemoteDocument>(
     // Step 6
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
-    // TODO: How to treat `null`?
-    let previous_definition = active_context.remove_term_definition(term);
+    // If the (previous) definition is explicit `null`, treat it as absent.
+    let previous_definition = active_context
+        .remove_term_definition(term)
+        .and_then(Into::into);
     // Step 7-9
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.

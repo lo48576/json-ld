@@ -38,7 +38,7 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
     optional: OptionalParams,
     value: &JsonMap<String, Value>,
     mut definition: DefinitionBuilder,
-    previous_definition: Option<Nullable<Definition>>,
+    previous_definition: Option<Definition>,
     simple_term: bool,
 ) -> Result<()> {
     // Step 15
@@ -615,16 +615,13 @@ fn process_prefix(
 fn build_term_definition(
     optional: OptionalParams,
     definition: DefinitionBuilder,
-    previous_definition: Option<Nullable<Definition>>,
+    previous_definition: Option<Definition>,
 ) -> Result<Definition> {
     // Step 29
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
-    // TODO: How to treat if `previous_definition` is `null`?
-    let mut new_definition = None;
-    if let Some(previous_definition) =
-        previous_definition.and_then(Into::<Option<Definition>>::into)
-    {
+    let definition = definition.build();
+    if let Some(previous_definition) = previous_definition {
         if !optional.override_protected && previous_definition.is_protected() {
             // Step 29.1
             // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
@@ -635,13 +632,11 @@ fn build_term_definition(
             // Step 29.2
             // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
             // as WD-json-ld11-api-20191018 has ambiguity.
-            new_definition = Some(previous_definition);
+            return Ok(previous_definition);
         }
     }
-    Ok(match new_definition {
-        Some(v) => v,
-        None => definition.build(),
-    })
+
+    Ok(definition)
 }
 
 /// Validates `@container` value.
