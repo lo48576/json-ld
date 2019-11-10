@@ -626,7 +626,7 @@ fn build_term_definition(
             // Step 29.1
             // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
             // as WD-json-ld11-api-20191018 has ambiguity.
-            if !definition.is_same_other_than_protected(&previous_definition) {
+            if !definition.eq_other_than_protected(&previous_definition) {
                 return Err(ErrorCode::ProtectedTermRedefinition.into());
             }
             // Step 29.2

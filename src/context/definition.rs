@@ -60,4 +60,23 @@ impl Definition {
     pub(crate) fn is_protected(&self) -> bool {
         self.protected.unwrap_or(false)
     }
+
+    /// Compares the term definitions other than `@protected` flag).
+    pub(crate) fn eq_other_than_protected(&self, other: &Self) -> bool {
+        self.iri == other.iri
+            && self.reverse == other.reverse
+            && self.ty == other.ty
+            && self.language == other.language
+            && self.direction == other.direction
+            && self.context == other.context
+            && self.nest == other.nest
+            && self.prefix == other.prefix
+            && self.index == other.index
+            && self.protected == other.protected
+            && match (&self.container, &other.container) {
+                (Some(s), Some(o)) => s.len() == o.len() && s.iter().all(|s| o.contains(s)),
+                (None, None) => true,
+                _ => false,
+            }
+    }
 }

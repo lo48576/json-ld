@@ -131,12 +131,6 @@ impl DefinitionBuilder {
         self.protected = Some(v);
     }
 
-    /// Checks if a definition to be built is same as the given definition other than the value of
-    /// the protected flag.
-    pub(crate) fn is_same_other_than_protected(&self, _other: &Definition) -> bool {
-        unimplemented!("Compare definitions")
-    }
-
     /// Sets the container mapping.
     pub(crate) fn set_container(&mut self, v: Nullable<Container>) {
         self.container = v.into();

@@ -27,6 +27,22 @@ impl Container {
             Self::Array(arr) => arr.contains(&v),
         }
     }
+
+    /// Returns an iterator of the container.
+    pub(crate) fn iter(&self) -> impl Iterator<Item = ContainerItem> + '_ {
+        match self {
+            Self::Single(s) => Some(*s).into_iter().chain((&[]).iter().copied()),
+            Self::Array(arr) => None.into_iter().chain(arr.iter().copied()),
+        }
+    }
+
+    /// Returns the number of container items.
+    pub(crate) fn len(&self) -> usize {
+        match self {
+            Self::Single(_) => 1,
+            Self::Array(arr) => arr.len(),
+        }
+    }
 }
 
 impl TryFrom<&Value> for Nullable<Container> {
