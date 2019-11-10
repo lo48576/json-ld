@@ -12,7 +12,8 @@ use crate::{
     error::{ErrorCode, Result},
     iri::{is_absolute_iri, to_prefix_and_suffix},
     json::Nullable,
-    processor::ProcessorOptions,
+    processor::Processor,
+    remote::LoadRemoteDocument,
 };
 
 /// Context for IRI expansion.
@@ -170,9 +171,9 @@ impl<'a> ExpandIriOptions<'a> {
     }
 
     /// Runs "create term definition" algorithm if necessary.
-    async fn create_term_definition(
+    async fn create_term_definition<L: LoadRemoteDocument>(
         &mut self,
-        processor: &ProcessorOptions,
+        processor: &Processor<L>,
         value: &str,
     ) -> Result<()> {
         if let ExpandIriContext::Mutable {
@@ -202,9 +203,9 @@ impl<'a> ExpandIriOptions<'a> {
     /// * `Err(_)`
     ///
     /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#iri-expansion>.
-    pub(crate) async fn expand_str(
+    pub(crate) async fn expand_str<L: LoadRemoteDocument>(
         self,
-        processor: &ProcessorOptions,
+        processor: &Processor<L>,
         value: &'a str,
     ) -> Result<Option<Cow<'a, str>>> {
         expand_str(self, processor, value).await
@@ -214,9 +215,9 @@ impl<'a> ExpandIriOptions<'a> {
     ///
     /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#iri-expansion>.
     #[allow(dead_code)]
-    pub(crate) async fn expand_to_json(
+    pub(crate) async fn expand_to_json<L: LoadRemoteDocument>(
         self,
-        processor: &ProcessorOptions,
+        processor: &Processor<L>,
         value: &str,
     ) -> Result<Value> {
         Ok(self
@@ -229,9 +230,9 @@ impl<'a> ExpandIriOptions<'a> {
 /// Runs IRI expansion algorithm for string value.
 ///
 /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#iri-expansion>.
-async fn expand_str<'a>(
+async fn expand_str<'a, L: LoadRemoteDocument>(
     mut options: ExpandIriOptions<'a>,
-    processor: &ProcessorOptions,
+    processor: &Processor<L>,
     value: &'a str,
 ) -> Result<Option<Cow<'a, str>>> {
     // Step 1

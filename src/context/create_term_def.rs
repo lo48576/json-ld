@@ -17,7 +17,8 @@ use crate::{
         to_prefix_and_suffix,
     },
     json::{single_entry_map, Nullable},
-    processor::ProcessorOptions,
+    processor::Processor,
+    remote::LoadRemoteDocument,
 };
 
 /// Optional parameters (arguments) for create term definition algorithm.
@@ -51,8 +52,8 @@ impl OptionalParams {
 /// Runs create term definition algorithm.
 ///
 /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#create-term-definition>
-pub(crate) fn create_term_definition<'a>(
-    processor: &'a ProcessorOptions,
+pub(crate) fn create_term_definition<'a, L: LoadRemoteDocument>(
+    processor: &'a Processor<L>,
     active_context: &'a mut Context,
     local_context: &'a JsonMap<String, Value>,
     term: &'a str,
@@ -75,8 +76,8 @@ pub(crate) fn create_term_definition<'a>(
 /// Runs create term definition algorithm.
 ///
 /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#create-term-definition>
-async fn create_term_definition_impl(
-    processor: &ProcessorOptions,
+async fn create_term_definition_impl<L: LoadRemoteDocument>(
+    processor: &Processor<L>,
     active_context: &mut Context,
     local_context: &JsonMap<String, Value>,
     term: &str,
@@ -296,8 +297,8 @@ async fn create_term_definition_impl(
 // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
 // as WD-json-ld11-api-20191018 has ambiguity.
 #[allow(clippy::too_many_arguments)] // TODO: FIXME
-async fn run_for_reverse(
-    processor: &ProcessorOptions,
+async fn run_for_reverse<L: LoadRemoteDocument>(
+    processor: &Processor<L>,
     active_context: &mut Context,
     local_context: &JsonMap<String, Value>,
     term: &str,
@@ -397,8 +398,8 @@ async fn run_for_reverse(
 // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
 // as WD-json-ld11-api-20191018 has ambiguity.
 #[allow(clippy::too_many_arguments)] // TODO: FIXME
-async fn run_for_non_reverse(
-    processor: &ProcessorOptions,
+async fn run_for_non_reverse<L: LoadRemoteDocument>(
+    processor: &Processor<L>,
     active_context: &mut Context,
     local_context: &JsonMap<String, Value>,
     term: &str,
@@ -694,8 +695,10 @@ async fn run_for_non_reverse(
         // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
         // as WD-json-ld11-api-20191018 has ambiguity.
         // FIXME: Invoke context processing algorithm. Result might not be `Value`.
-        let context: Context =
-            unimplemented!("Invoke context processing algorithm: context={:?}", context);
+        let context: Context = active_context
+            .join(processor, context, true)
+            .await
+            .map_err(|e| ErrorCode::InvalidScopedContext.and_source(e))?;
         // Step 23.4
         // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
         // as WD-json-ld11-api-20191018 has ambiguity.

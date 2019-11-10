@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use iri_string::types::{IriStr, IriString};
 use serde_json::{Map as JsonMap, Value};
 
-use crate::{error::Result, json::Nullable, processor::ProcessorOptions};
+use crate::{error::Result, json::Nullable, processor::Processor, remote::LoadRemoteDocument};
 
 use self::create_term_def::{create_term_definition, OptionalParams};
 pub(crate) use self::definition::Definition;
@@ -60,9 +60,9 @@ impl Context {
     /// Runs create term definition algorithm.
     ///
     /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#create-term-definition>.
-    pub(crate) async fn create_term_definition(
+    pub(crate) async fn create_term_definition<L: LoadRemoteDocument>(
         &mut self,
-        processor: &ProcessorOptions,
+        processor: &Processor<L>,
         local_context: &JsonMap<String, Value>,
         term: &str,
         defined: &mut HashMap<String, bool>,
@@ -81,5 +81,33 @@ impl Context {
     /// Returns the vocabulary mapping.
     pub(crate) fn vocab(&self) -> Option<&str> {
         self.vocab.as_ref().map(AsRef::as_ref)
+    }
+
+    /// Runs context processing algorithm and returns a new context.
+    ///
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#context-processing-algorithm>.
+    pub(crate) async fn join<L: LoadRemoteDocument>(
+        &self,
+        processor: &Processor<L>,
+        local_context: &Value,
+        override_protected: bool,
+    ) -> Result<Self> {
+        let mut result = self.clone();
+        result
+            .merge(processor, local_context, override_protected)
+            .await?;
+        Ok(result)
+    }
+
+    /// Runs context processing algorithm.
+    ///
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#context-processing-algorithm>.
+    async fn merge<L: LoadRemoteDocument>(
+        &mut self,
+        _processor: &Processor<L>,
+        _local_context: &Value,
+        _override_protected: bool,
+    ) -> Result<Self> {
+        unimplemented!()
     }
 }

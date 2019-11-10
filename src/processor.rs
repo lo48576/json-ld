@@ -104,3 +104,25 @@ impl<L: LoadRemoteDocument> Processor<L> {
         &self.loader
     }
 }
+
+impl<L: LoadRemoteDocument> Processor<L> {
+    /// Checks if the processing mode is `json-ld-1.0`.
+    pub(crate) fn is_processing_mode_1_0(&self) -> bool {
+        self.options().is_processing_mode_1_0()
+    }
+
+    /// Checks if the given string is a keyword.
+    ///
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-20191018/#syntax-tokens-and-keywords>.
+    pub(crate) fn is_keyword(&self, s: &str) -> bool {
+        self.options().is_keyword(s)
+    }
+
+    /// Returns the base IRI.
+    ///
+    /// Note that the base can be empty (null) when `{ "@context": { "@base": null } }` is
+    /// specified.
+    pub(crate) fn base<'a>(&'a self, context: &'a Context) -> Option<Cow<'a, IriStr>> {
+        self.options().base(context)
+    }
+}

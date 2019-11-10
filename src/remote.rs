@@ -11,7 +11,7 @@ use serde_json::Value;
 /// `async_trait` trait is re-exported by this (json-ld) crate, so you can do
 /// `use json_ld::async_trait::async_trait`.
 #[async_trait]
-pub trait LoadRemoteDocument {
+pub trait LoadRemoteDocument: Send + Sync {
     /// Error type.
     type Error: std::error::Error + Send + Sync + 'static;
 
