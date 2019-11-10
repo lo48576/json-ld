@@ -108,6 +108,6 @@ impl Context {
         _local_context: &Value,
         _override_protected: bool,
     ) -> Result<Self> {
-        unimplemented!()
+        unimplemented!("Context processing algorithm")
     }
 }

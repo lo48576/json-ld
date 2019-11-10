@@ -177,7 +177,9 @@ async fn process_iri<L: LoadRemoteDocument>(
             // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
             // as WD-json-ld11-api-20191018 has ambiguity.
             Value::Null => {
-                unimplemented!("TODO: Do something?");
+                // > If value contains the `@id` entry is `null`, the term is not used for IRI
+                // > expansion, but is retained to be able to detect future redefinitions of this term.
+                unimplemented!("TODO: What to do if `@id` is null?");
             }
             // Step 16.3-
             // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>

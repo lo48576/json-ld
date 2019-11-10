@@ -55,7 +55,9 @@ impl Definition {
     }
 
     /// Returns whether the definition is protected.
+    ///
+    /// Returns false if the value is not set.
     pub(crate) fn is_protected(&self) -> bool {
-        unimplemented!()
+        self.protected.unwrap_or(false)
     }
 }

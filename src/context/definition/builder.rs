@@ -134,7 +134,7 @@ impl DefinitionBuilder {
     /// Checks if a definition to be built is same as the given definition other than the value of
     /// the protected flag.
     pub(crate) fn is_same_other_than_protected(&self, _other: &Definition) -> bool {
-        unimplemented!()
+        unimplemented!("Compare definitions")
     }
 
     /// Sets the container mapping.
