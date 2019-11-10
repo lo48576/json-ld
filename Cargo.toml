@@ -16,6 +16,7 @@ all-features = true
 
 [dependencies]
 anyhow = "1.0.18"
+async-trait = "0.1.17"
 iri-string = "0.2.2"
 serde_json = "1.0.41"
 thiserror = "1.0.4"
