@@ -11,7 +11,7 @@ use crate::{
     expand::iri::ExpandIriOptions,
     iri::is_absolute_iri,
     json::single_entry_map,
-    processor::Processor,
+    processor::{Processor, ProcessorOptions},
     remote::LoadRemoteDocument,
 };
 
@@ -191,6 +191,61 @@ async fn create_term_definition_impl<L: LoadRemoteDocument>(
     // Step 11, 12
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
+    process_protected(processor.options(), optional, &value, &mut definition)?;
+    // Step 13
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
+    process_type(
+        processor,
+        active_context,
+        local_context,
+        defined,
+        &value,
+        &mut definition,
+    )
+    .await?;
+    // Step 14
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
+    if let Some(reverse) = value.get("@reverse") {
+        run_for_reverse(
+            processor,
+            active_context,
+            local_context,
+            term,
+            defined,
+            &value,
+            reverse,
+            definition,
+        )
+        .await
+    } else {
+        run_for_non_reverse(
+            processor,
+            active_context,
+            local_context,
+            term,
+            defined,
+            optional,
+            &value,
+            definition,
+            previous_definition,
+            simple_term,
+        )
+        .await
+    }
+}
+
+/// Processes the "protected" flag.
+fn process_protected(
+    processor: &ProcessorOptions,
+    optional: OptionalParams,
+    value: &JsonMap<String, Value>,
+    definition: &mut DefinitionBuilder,
+) -> Result<()> {
+    // Step 11, 12
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
     match value.get("@protected") {
         // Step 11
         // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
@@ -211,6 +266,19 @@ async fn create_term_definition_impl<L: LoadRemoteDocument>(
         }
         _ => {}
     }
+
+    Ok(())
+}
+
+/// Processes the type mapping.
+async fn process_type<L: LoadRemoteDocument>(
+    processor: &Processor<L>,
+    active_context: &mut Context,
+    local_context: &JsonMap<String, Value>,
+    defined: &mut HashMap<String, bool>,
+    value: &JsonMap<String, Value>,
+    definition: &mut DefinitionBuilder,
+) -> Result<()> {
     // Step 13
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
@@ -256,34 +324,6 @@ async fn create_term_definition_impl<L: LoadRemoteDocument>(
         // as WD-json-ld11-api-20191018 has ambiguity.
         v => return Err(ErrorCode::InvalidTypeMapping.and_source(anyhow!("@type = {:?}", v))),
     }
-    // Step 14
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
-    if let Some(reverse) = value.get("@reverse") {
-        run_for_reverse(
-            processor,
-            active_context,
-            local_context,
-            term,
-            defined,
-            &value,
-            reverse,
-            definition,
-        )
-        .await
-    } else {
-        run_for_non_reverse(
-            processor,
-            active_context,
-            local_context,
-            term,
-            defined,
-            optional,
-            &value,
-            definition,
-            previous_definition,
-            simple_term,
-        )
-        .await
-    }
+
+    Ok(())
 }

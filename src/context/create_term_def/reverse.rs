@@ -84,22 +84,7 @@ pub(crate) async fn run_for_reverse<L: LoadRemoteDocument>(
     // Step 14.5
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
-    if let Some(container) = value.get("@container") {
-        let container = Nullable::<Container>::try_from(container)
-            .map_err(|e| ErrorCode::InvalidContainerMapping.and_source(e))?;
-        match container {
-            Nullable::Null
-            | Nullable::Value(Container::Single(ContainerItem::Set))
-            | Nullable::Value(Container::Single(ContainerItem::Index)) => {
-                definition.set_container(container);
-            }
-            v => {
-                return Err(
-                    ErrorCode::InvalidReverseProperty.and_source(anyhow!("`@container` = {:?}", v))
-                )
-            }
-        }
-    }
+    process_conatiner(value, &mut definition)?;
     // Step 14.6
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
@@ -116,4 +101,31 @@ pub(crate) async fn run_for_reverse<L: LoadRemoteDocument>(
         .expect("Should never fail: inserted before") = true;
 
     Ok(())
+}
+
+/// Processes the container mapping if available.
+fn process_conatiner(
+    value: &JsonMap<String, Value>,
+    definition: &mut DefinitionBuilder,
+) -> Result<()> {
+    // Step 14.5
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
+    if let Some(container) = value.get("@container") {
+        let container = Nullable::<Container>::try_from(container)
+            .map_err(|e| ErrorCode::InvalidContainerMapping.and_source(e))?;
+        match container {
+            Nullable::Null
+            | Nullable::Value(Container::Single(ContainerItem::Set))
+            | Nullable::Value(Container::Single(ContainerItem::Index)) => {
+                definition.set_container(container);
+                Ok(())
+            }
+            v => {
+                Err(ErrorCode::InvalidReverseProperty.and_source(anyhow!("`@container` = {:?}", v)))
+            }
+        }
+    } else {
+        Ok(())
+    }
 }

@@ -18,7 +18,7 @@ use crate::{
         to_prefix_and_suffix,
     },
     json::Nullable,
-    processor::Processor,
+    processor::{Processor, ProcessorOptions},
     remote::LoadRemoteDocument,
 };
 
@@ -45,6 +45,125 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
     definition.set_reverse(false);
+    // Step 16-20
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
+    process_iri(
+        processor,
+        active_context,
+        local_context,
+        term,
+        defined,
+        optional,
+        value,
+        &mut definition,
+        simple_term,
+    )
+    .await?;
+    // Step 21
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
+    process_container(processor, value, &mut definition).await?;
+    // Step 22
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
+    process_index(processor.options(), value, &mut definition)?;
+    // Step 23
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
+    process_local_context(processor, active_context, value, &mut definition).await?;
+    // Step 24
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
+    process_language(value, &mut definition)?;
+    // Step 25
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
+    process_direction(value, &mut definition)?;
+    // Step 26
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
+    process_nest(processor.options(), value, &mut definition)?;
+    // Step 27
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
+    process_prefix(processor.options(), term, value, &mut definition)?;
+    // Step 28
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
+    for key in value.keys() {
+        match key.as_str() {
+            "@id" | "@reverse" | "@container" | "@context" | "@language" | "@nest" | "@prefix"
+            | "@type" => {}
+            v => {
+                return Err(ErrorCode::InvalidTermDefinition
+                    .and_source(anyhow!("Unexpected entry: key={:?}", v)))
+            }
+        }
+    }
+    // Step 29
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
+    let definition = build_term_definition(optional, definition, previous_definition)?;
+    // Step 30
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
+    active_context
+        .term_definitions
+        .insert(term.to_owned(), Nullable::Value(definition));
+    defined.insert(term.to_owned(), true);
+
+    Ok(())
+}
+
+/// Processes the language mapping.
+fn process_language(
+    value: &JsonMap<String, Value>,
+    definition: &mut DefinitionBuilder,
+) -> Result<()> {
+    // Step 24
+    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+    // as WD-json-ld11-api-20191018 has ambiguity.
+    if let Some(language) = value.get("@language") {
+        if !value.contains_key("@type") {
+            // Step 24.1
+            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+            // as WD-json-ld11-api-20191018 has ambiguity.
+            let language = match language {
+                Value::Null => Nullable::Null,
+                Value::String(s) => Nullable::Value(s.as_str()),
+                v => {
+                    return Err(ErrorCode::InvalidLanguageMapping.and_source(anyhow!(
+                        "Expected string or null as `@language` value, but got {:?}",
+                        v
+                    )))
+                }
+            };
+            // TODO: Issue a warning if `language` is not well-formed according to section 2.2.9 of BCP47.
+            // Step 24.2
+            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+            // as WD-json-ld11-api-20191018 has ambiguity.
+            // TODO: Processors MAY normalize language tags to lower case.
+            definition.set_language(language.map(ToOwned::to_owned));
+        }
+    }
+
+    Ok(())
+}
+
+/// Processes the IRI mapping.
+#[allow(clippy::too_many_arguments)] // TODO: FIXME
+async fn process_iri<L: LoadRemoteDocument>(
+    processor: &Processor<L>,
+    active_context: &mut Context,
+    local_context: &JsonMap<String, Value>,
+    term: &str,
+    defined: &mut HashMap<String, bool>,
+    optional: OptionalParams,
+    value: &JsonMap<String, Value>,
+    definition: &mut DefinitionBuilder,
+    simple_term: bool,
+) -> Result<()> {
     // Step 16
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
@@ -210,6 +329,16 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
             }
         }
     }
+
+    Ok(())
+}
+
+/// Processes the container mapping.
+async fn process_container<L: LoadRemoteDocument>(
+    processor: &Processor<L>,
+    value: &JsonMap<String, Value>,
+    definition: &mut DefinitionBuilder,
+) -> Result<()> {
     // Step 21
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
@@ -273,6 +402,16 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
             }
         }
     }
+
+    Ok(())
+}
+
+/// Processes the index mapping.
+fn process_index(
+    processor: &ProcessorOptions,
+    value: &JsonMap<String, Value>,
+    definition: &mut DefinitionBuilder,
+) -> Result<()> {
     // Step 22
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
@@ -309,6 +448,17 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
         // as WD-json-ld11-api-20191018 has ambiguity.
         definition.set_index(index);
     }
+
+    Ok(())
+}
+
+/// Processes the local context.
+async fn process_local_context<L: LoadRemoteDocument>(
+    processor: &Processor<L>,
+    active_context: &mut Context,
+    value: &JsonMap<String, Value>,
+    definition: &mut DefinitionBuilder,
+) -> Result<()> {
     // Step 23
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
@@ -335,32 +485,15 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
         // as WD-json-ld11-api-20191018 has ambiguity.
         definition.set_local_context(context);
     }
-    // Step 24
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
-    if let Some(language) = value.get("@language") {
-        if !value.contains_key("@type") {
-            // Step 24.1
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
-            let language = match language {
-                Value::Null => Nullable::Null,
-                Value::String(s) => Nullable::Value(s.as_str()),
-                v => {
-                    return Err(ErrorCode::InvalidLanguageMapping.and_source(anyhow!(
-                        "Expected string or null as `@language` value, but got {:?}",
-                        v
-                    )))
-                }
-            };
-            // TODO: Issue a warning if `language` is not well-formed according to section 2.2.9 of BCP47.
-            // Step 24.2
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
-            // TODO: Processors MAY normalize language tags to lower case.
-            definition.set_language(language.map(ToOwned::to_owned));
-        }
-    }
+
+    Ok(())
+}
+
+/// Processes the direction mapping.
+fn process_direction(
+    value: &JsonMap<String, Value>,
+    definition: &mut DefinitionBuilder,
+) -> Result<()> {
     // Step 25
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
@@ -378,6 +511,16 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
             definition.set_direction(direction);
         }
     }
+
+    Ok(())
+}
+
+/// Processes the nest value.
+fn process_nest(
+    processor: &ProcessorOptions,
+    value: &JsonMap<String, Value>,
+    definition: &mut DefinitionBuilder,
+) -> Result<()> {
     // Step 26
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
@@ -406,6 +549,17 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
         }
         definition.set_nest(nest);
     }
+
+    Ok(())
+}
+
+/// Processes the prefix flag.
+fn process_prefix(
+    processor: &ProcessorOptions,
+    term: &str,
+    value: &JsonMap<String, Value>,
+    definition: &mut DefinitionBuilder,
+) -> Result<()> {
     // Step 27
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
@@ -445,19 +599,16 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
             )));
         }
     }
-    // Step 28
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
-    for key in value.keys() {
-        match key.as_str() {
-            "@id" | "@reverse" | "@container" | "@context" | "@language" | "@nest" | "@prefix"
-            | "@type" => {}
-            v => {
-                return Err(ErrorCode::InvalidTermDefinition
-                    .and_source(anyhow!("Unexpected entry: key={:?}", v)))
-            }
-        }
-    }
+
+    Ok(())
+}
+
+/// Checks the override protected flag and builds the term definition.
+fn build_term_definition(
+    optional: OptionalParams,
+    definition: DefinitionBuilder,
+    previous_definition: Option<Nullable<Definition>>,
+) -> Result<Definition> {
     // Step 29
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
@@ -479,19 +630,10 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
             new_definition = Some(previous_definition);
         }
     }
-    let definition = match new_definition {
+    Ok(match new_definition {
         Some(v) => v,
         None => definition.build(),
-    };
-    // Step 30
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
-    active_context
-        .term_definitions
-        .insert(term.to_owned(), Nullable::Value(definition));
-    defined.insert(term.to_owned(), true);
-
-    Ok(())
+    })
 }
 
 /// Validates `@container` value.
