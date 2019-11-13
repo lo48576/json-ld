@@ -112,7 +112,7 @@ fn process_conatiner(
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
     if let Some(container) = value.get("@container") {
-        let container = Nullable::<Container>::try_from(container)
+        let mut container = Nullable::<Container>::try_from(container)
             .map_err(|e| ErrorCode::InvalidContainerMapping.and_source(e))?;
         // > If _value_ contains an `@container` entry, set the container mapping of _definition_
         // > to an array containing its value; if its value is neither `@set`, nor `@index`, nor
@@ -122,6 +122,9 @@ fn process_conatiner(
             Nullable::Null
             | Nullable::Value(Some((ContainerItem::Set, _)))
             | Nullable::Value(Some((ContainerItem::Index, _))) => {
+                if let Nullable::Value(container) = &mut container {
+                    container.prefer_array();
+                }
                 definition.set_container(container);
                 Ok(())
             }
