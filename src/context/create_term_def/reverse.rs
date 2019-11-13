@@ -114,10 +114,14 @@ fn process_conatiner(
     if let Some(container) = value.get("@container") {
         let container = Nullable::<Container>::try_from(container)
             .map_err(|e| ErrorCode::InvalidContainerMapping.and_source(e))?;
-        match container {
+        // > If _value_ contains an `@container` entry, set the container mapping of _definition_
+        // > to an array containing its value; if its value is neither `@set`, nor `@index`, nor
+        // > `null`, an `invalid reverse property` error has been detected (reverse properties only
+        // > support set- and index-containers) and processing is aborted.
+        match container.map(|c| c.get_single_item()) {
             Nullable::Null
-            | Nullable::Value(Container::Single(ContainerItem::Set))
-            | Nullable::Value(Container::Single(ContainerItem::Index)) => {
+            | Nullable::Value(Some((ContainerItem::Set, _)))
+            | Nullable::Value(Some((ContainerItem::Index, _))) => {
                 definition.set_container(container);
                 Ok(())
             }

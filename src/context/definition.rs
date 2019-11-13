@@ -73,10 +73,6 @@ impl Definition {
             && self.prefix == other.prefix
             && self.index == other.index
             && self.protected == other.protected
-            && match (&self.container, &other.container) {
-                (Some(s), Some(o)) => s.len() == o.len() && s.iter().all(|s| o.contains(s)),
-                (None, None) => true,
-                _ => false,
-            }
+            && self.container == other.container
     }
 }

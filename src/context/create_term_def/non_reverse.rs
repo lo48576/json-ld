@@ -359,29 +359,29 @@ async fn process_container<L: LoadRemoteDocument>(
         // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
         // as WD-json-ld11-api-20191018 has ambiguity.
         if processor.is_processing_mode_1_0() {
-            let item = match container {
-                Container::Single(v) => v,
-                Container::Array(arr) => {
+            match container.get_single_item() {
+                Some((_, true)) | None => {
+                    return Err(ErrorCode::InvalidContainerMapping.and_source(anyhow!(
+                        "Expected `@container` to be a string but got {:?}, \
+                         with processing mode `json-ld-1.0`",
+                        container
+                    )));
+                }
+                Some((item @ ContainerItem::Graph, false))
+                | Some((item @ ContainerItem::Id, false))
+                | Some((item @ ContainerItem::Type, false)) => {
                     return Err(ErrorCode::InvalidContainerMapping.and_source(anyhow!(
                         "Unexpected `@container` value {:?} with processing mode `json-ld-1.0`",
-                        arr
+                        item
                     )))
                 }
-            };
-            match item {
-                ContainerItem::Graph | ContainerItem::Id | ContainerItem::Type => {}
-                v => {
-                    return Err(ErrorCode::InvalidContainerMapping.and_source(anyhow!(
-                        "Unexpected @container value {:?} with processing mode `json-ld-1.0`",
-                        v
-                    )))
-                }
+                Some((_, false)) => {}
             }
         }
         // Step 21.3
         // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
         // as WD-json-ld11-api-20191018 has ambiguity.
-        definition.set_container(Nullable::Value(container.clone()));
+        definition.set_container(Nullable::Value(container));
         // Step 21.4
         // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
         // as WD-json-ld11-api-20191018 has ambiguity.
@@ -642,19 +642,15 @@ fn build_term_definition(
 /// Validates `@container` value.
 ///
 /// Returns `Ok(container)` if the value is valid, `Err(_)` otherwise.
+// Step 21.
+// NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+// as WD-json-ld11-api-20191018 has ambiguity.
 async fn validate_container_non_reverse(container: &Value) -> Result<Container> {
     let container = Container::try_from(container)
         .map_err(|e| ErrorCode::InvalidContainerMapping.and_source(e))?;
-    let arr = match container {
-        Container::Single(_) => {
-            // > either `@graph`, `@id`, `@index`, `@language`, `@list`, `@set`, `@type`
-            return Ok(container);
-        }
-        Container::Array(ref arr) => arr,
-    };
-
-    if arr.len() == 1 {
-        // > an array containing exactly any one of those keywords
+    if container.len() == 1 {
+        // > either `@graph`, `@id`, `@index`, `@language`, `@list`, `@set`, `@type`,
+        // > or an array containing exactly any one of those keywords
         return Ok(container);
     }
 
@@ -662,7 +658,7 @@ async fn validate_container_non_reverse(container: &Value) -> Result<Container> 
         let mut has_graph = false;
         let mut has_id = false;
         let mut has_index = false;
-        for item in arr {
+        for item in container.iter() {
             match item {
                 ContainerItem::Graph => has_graph = true,
                 ContainerItem::Id => has_id = true,
@@ -672,20 +668,21 @@ async fn validate_container_non_reverse(container: &Value) -> Result<Container> 
                     return Err(ErrorCode::InvalidContainerMapping.and_source(anyhow!(
                         "Unexpected item {:?} in container {:?}",
                         v,
-                        arr
+                        container
                     )))
                 }
             }
         }
         if has_graph && (has_id ^ has_index) {
-            // an array containing `@graph` and either `@id` or `@index` optionally including `@set`
+            // > an array containing `@graph` and either `@id` or `@index` optionally including
+            // > `@set`
             return Ok(container);
         }
     }
 
     {
         let mut has_set = false;
-        for item in arr {
+        for item in container.iter() {
             match item {
                 ContainerItem::Set => has_set = true,
                 ContainerItem::Index
@@ -696,7 +693,7 @@ async fn validate_container_non_reverse(container: &Value) -> Result<Container> 
                     return Err(ErrorCode::InvalidContainerMapping.and_source(anyhow!(
                         "Unexpected item {:?} in container {:?}",
                         v,
-                        arr
+                        container
                     )))
                 }
             }
@@ -708,5 +705,6 @@ async fn validate_container_non_reverse(container: &Value) -> Result<Container> 
         }
     }
 
-    Err(ErrorCode::InvalidContainerMapping.and_source(anyhow!("Unexpected container {:?}", arr)))
+    Err(ErrorCode::InvalidContainerMapping
+        .and_source(anyhow!("Unexpected container {:?}", container)))
 }
