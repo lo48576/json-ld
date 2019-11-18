@@ -256,3 +256,66 @@ impl ContainerLoadError {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn container_eq_unordered() {
+        let v0: Container = [ContainerItem::Graph, ContainerItem::Id]
+            .iter()
+            .copied()
+            .collect();
+        let v1: Container = [ContainerItem::Id, ContainerItem::Graph]
+            .iter()
+            .copied()
+            .collect();
+        assert_eq!(
+            v0, v1,
+            "Equality comparison of `Conatiner`s should be order-agnostic"
+        );
+    }
+
+    #[test]
+    fn container_ne_multiple_single_and_array() {
+        let v0 = Container::from(ContainerItem::Id);
+        let mut v1 = Container::from(ContainerItem::Id);
+        assert_eq!(v0, v1);
+        v1.prefer_array();
+        assert_ne!(
+            v0, v1,
+            "`prefer_array` flag should be checked for containers with single items"
+        );
+    }
+
+    #[test]
+    fn container_eq_multiple() {
+        let v0: Container = [ContainerItem::Graph, ContainerItem::Id]
+            .iter()
+            .copied()
+            .collect();
+        let mut v1: Container = [ContainerItem::Graph, ContainerItem::Id]
+            .iter()
+            .copied()
+            .collect();
+        assert_eq!(v0, v1);
+        v1.prefer_array();
+        assert_eq!(
+            v0, v1,
+            "`prefer_array` flag should be ignored for containers with multiple items"
+        );
+    }
+
+    #[test]
+    fn container_eq_empty() {
+        let v0 = Container::new();
+        let mut v1 = Container::new();
+        assert_eq!(v0, v1);
+        v1.prefer_array();
+        assert_eq!(
+            v0, v1,
+            "`prefer_array` flag should be ignored for empty containers"
+        );
+    }
+}
