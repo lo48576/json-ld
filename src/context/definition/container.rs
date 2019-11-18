@@ -105,7 +105,7 @@ impl std::str::FromStr for ContainerItem {
 ///
 /// This type itself is a simple container and does not do any validation.
 /// Loaders are responsible to do it.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Eq)]
 pub struct Container {
     /// Items of `@container` entry.
     items: u8,
@@ -149,6 +149,12 @@ impl Container {
     /// Returns the number of items.
     pub(crate) fn len(self) -> usize {
         self.items.count_ones() as usize
+    }
+}
+
+impl PartialEq for Container {
+    fn eq(&self, rhs: &Container) -> bool {
+        self.items == rhs.items && (self.len() != 1 || self.prefer_array == rhs.prefer_array)
     }
 }
 
