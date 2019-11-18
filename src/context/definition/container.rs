@@ -105,7 +105,7 @@ impl std::str::FromStr for ContainerItem {
 ///
 /// This type itself is a simple container and does not do any validation.
 /// Loaders are responsible to do it.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Eq)]
 pub struct Container {
     /// Items of `@container` entry.
     items: u8,
@@ -152,18 +152,18 @@ impl Container {
     }
 }
 
+impl PartialEq for Container {
+    fn eq(&self, rhs: &Container) -> bool {
+        self.items == rhs.items && (self.len() != 1 || self.prefer_array == rhs.prefer_array)
+    }
+}
+
 impl fmt::Debug for Container {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.get_single_item() {
             Some((item, false)) => item.fmt(f),
             _ => f.debug_set().entries(self.iter()).finish(),
         }
-    }
-}
-
-impl PartialEq<ContainerItem> for Container {
-    fn eq(&self, rhs: &ContainerItem) -> bool {
-        self.items == rhs.single_bit()
     }
 }
 
@@ -254,5 +254,68 @@ impl ContainerLoadError {
         Self {
             msg: format!("{}: {}", msg, self.msg),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn container_eq_unordered() {
+        let v0: Container = [ContainerItem::Graph, ContainerItem::Id]
+            .iter()
+            .copied()
+            .collect();
+        let v1: Container = [ContainerItem::Id, ContainerItem::Graph]
+            .iter()
+            .copied()
+            .collect();
+        assert_eq!(
+            v0, v1,
+            "Equality comparison of `Conatiner`s should be order-agnostic"
+        );
+    }
+
+    #[test]
+    fn container_ne_multiple_single_and_array() {
+        let v0 = Container::from(ContainerItem::Id);
+        let mut v1 = Container::from(ContainerItem::Id);
+        assert_eq!(v0, v1);
+        v1.prefer_array();
+        assert_ne!(
+            v0, v1,
+            "`prefer_array` flag should be checked for containers with single items"
+        );
+    }
+
+    #[test]
+    fn container_eq_multiple() {
+        let v0: Container = [ContainerItem::Graph, ContainerItem::Id]
+            .iter()
+            .copied()
+            .collect();
+        let mut v1: Container = [ContainerItem::Graph, ContainerItem::Id]
+            .iter()
+            .copied()
+            .collect();
+        assert_eq!(v0, v1);
+        v1.prefer_array();
+        assert_eq!(
+            v0, v1,
+            "`prefer_array` flag should be ignored for containers with multiple items"
+        );
+    }
+
+    #[test]
+    fn container_eq_empty() {
+        let v0 = Container::new();
+        let mut v1 = Container::new();
+        assert_eq!(v0, v1);
+        v1.prefer_array();
+        assert_eq!(
+            v0, v1,
+            "`prefer_array` flag should be ignored for empty containers"
+        );
     }
 }
