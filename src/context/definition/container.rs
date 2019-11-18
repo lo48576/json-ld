@@ -161,12 +161,6 @@ impl fmt::Debug for Container {
     }
 }
 
-impl PartialEq<ContainerItem> for Container {
-    fn eq(&self, rhs: &ContainerItem) -> bool {
-        self.items == rhs.single_bit()
-    }
-}
-
 impl From<ContainerItem> for Container {
     fn from(v: ContainerItem) -> Self {
         Self {
