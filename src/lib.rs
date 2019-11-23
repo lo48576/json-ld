@@ -5,6 +5,7 @@
 
 // Re-export for use with third-party implementation of `LoadRemoteDocument` trait.
 pub use async_trait;
+pub use iri_string;
 
 pub use self::{
     context::Context,
