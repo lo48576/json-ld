@@ -31,6 +31,21 @@ pub(crate) struct OptionalParams {
     propagate: bool,
 }
 
+impl OptionalParams {
+    /// Sets the `protected` option if available.
+    pub(crate) fn protected_opt(self, protected: Option<bool>) -> Self {
+        Self {
+            protected: protected.unwrap_or(self.protected),
+            ..self
+        }
+    }
+
+    /// Sets the `propagate` option if available.
+    pub(crate) fn propagate(self, propagate: bool) -> Self {
+        Self { propagate, ..self }
+    }
+}
+
 impl Default for OptionalParams {
     fn default() -> Self {
         Self {
@@ -115,38 +130,38 @@ async fn create_term_definition_impl<L: LoadRemoteDocument>(
         )
     });
     // Step 4
-    if term == "@type" && processor.is_processing_mode_1_0() {
-        return Err(ErrorCode::KeywordRedefinition.and_source(anyhow!(
-            "`term` = \"@type\" and processing mode is `json-ld-1.0`"
-        )));
-    }
-    match value {
-        Value::Object(map) => {
-            if map.get("@container").and_then(|v| v.as_str()) != Some("@set") {
-                // TODO: What to do if this "MUST" condition is not met?
-                //
-                // > At this point, value *MUST* be a map with only the entry `@container` and value
-                // > `@set` and optional entry `@protected`.
-                return Err(ErrorCode::Uncategorized.and_source(anyhow!(
-                    "Expected the value `@set` for `@container` entry, but got {:?}",
-                    map.get("@container")
-                )));
-            }
-            if let Some((k, v)) = map
-                .iter()
-                .find(|(k, _)| *k != "@container" && *k != "@protected")
-            {
-                return Err(ErrorCode::KeywordRedefinition.and_source(anyhow!(
-                    "Unexpected entry: key={:?}, value={:?}",
-                    k,
-                    v
-                )));
-            }
+    if term == "@type" {
+        if processor.is_processing_mode_1_0() {
+            return Err(ErrorCode::KeywordRedefinition.and_source(anyhow!(
+                "`term` = \"@type\" and processing mode is `json-ld-1.0`"
+            )));
         }
-        Value::Null => {}
-        _ => {
-            return Err(ErrorCode::KeywordRedefinition
-                .and_source(anyhow!("Unexpected type: value={:?}", value)))
+        let map = match value {
+            Value::Object(map) => map,
+            v => {
+                return Err(ErrorCode::KeywordRedefinition.and_source(anyhow!(
+                    "Expected an object for term `@type`, but got {:?}",
+                    v
+                )))
+            }
+        };
+        // > At this point, value *MUST* be a map with only the entry `@container` and value
+        // > `@set` and optional entry `@protected`.
+        if map.get("@container").and_then(|v| v.as_str()) != Some("@set") {
+            return Err(ErrorCode::KeywordRedefinition.and_source(anyhow!(
+                "Expected the value `@set` for `@container` entry for term `@type`, but got {:?}",
+                map.get("@container")
+            )));
+        }
+        if let Some((k, v)) = map
+            .iter()
+            .find(|(k, _)| *k != "@container" && *k != "@protected")
+        {
+            return Err(ErrorCode::KeywordRedefinition.and_source(anyhow!(
+                "Unexpected entry for term `@type`: key={:?}, value={:?}",
+                k,
+                v
+            )));
         }
     }
     // Step 5

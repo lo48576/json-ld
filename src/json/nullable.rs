@@ -52,6 +52,15 @@ impl<T> Into<Option<T>> for Nullable<T> {
     }
 }
 
+impl<T> From<Option<T>> for Nullable<T> {
+    fn from(v: Option<T>) -> Self {
+        match v {
+            Some(v) => Nullable::Value(v),
+            None => Nullable::Null,
+        }
+    }
+}
+
 impl<T: Into<serde_json::Value>> Into<Value> for Nullable<T> {
     fn into(self) -> Value {
         match self {

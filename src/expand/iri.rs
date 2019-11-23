@@ -296,7 +296,7 @@ async fn expand_str<'a, L: LoadRemoteDocument>(
     }
     // Step 7
     if options.vocab {
-        if let Some(vocab) = options.active_context().vocab() {
+        if let Nullable::Value(vocab) = options.active_context().vocab() {
             return Ok(Some(Cow::Owned(format!("{}{}", vocab, value))));
         }
     }

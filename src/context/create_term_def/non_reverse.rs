@@ -48,7 +48,7 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
     // Step 16-20
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
-    process_iri(
+    let process_iri_status = process_iri(
         processor,
         active_context,
         local_context,
@@ -60,6 +60,9 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
         simple_term,
     )
     .await?;
+    if process_iri_status == ProcessIriStatus::Stop {
+        return Ok(());
+    }
     // Step 21
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
@@ -151,6 +154,15 @@ fn process_language(
     Ok(())
 }
 
+/// Status of IRI processing.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ProcessIriStatus {
+    /// Continue running following step.
+    Continue,
+    /// Not error, but stop the processing and return from the context definition algorithm.
+    Stop,
+}
+
 /// Processes the IRI mapping.
 #[allow(clippy::too_many_arguments)] // TODO: FIXME
 async fn process_iri<L: LoadRemoteDocument>(
@@ -163,16 +175,12 @@ async fn process_iri<L: LoadRemoteDocument>(
     value: &JsonMap<String, Value>,
     definition: &mut DefinitionBuilder,
     simple_term: bool,
-) -> Result<()> {
+) -> Result<ProcessIriStatus> {
     // Step 16
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
-    if let Some(id) = value.get("@id") {
+    if let Some(id) = value.get("@id").filter(|id| id.as_str() != Some(term)) {
         match id {
-            // Step 16
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
-            Value::String(id) if id == term => {}
             // Step 16.1
             // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
             // as WD-json-ld11-api-20191018 has ambiguity.
@@ -185,7 +193,6 @@ async fn process_iri<L: LoadRemoteDocument>(
                 active_context
                     .term_definitions
                     .insert(term.to_owned(), Nullable::Null);
-                return Ok(());
             }
             // Step 16.3-
             // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
@@ -196,10 +203,7 @@ async fn process_iri<L: LoadRemoteDocument>(
                 // as WD-json-ld11-api-20191018 has ambiguity.
                 if !processor.is_keyword(id) && id.starts_with('@') {
                     // TODO: Generate warning.
-                    return Err(ErrorCode::Uncategorized.and_source(anyhow!(
-                        "@id value {:?} is not a keyword but starts with `@`",
-                        id
-                    )));
+                    return Ok(ProcessIriStatus::Stop);
                 }
                 // Step 16.4
                 // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
@@ -222,6 +226,8 @@ async fn process_iri<L: LoadRemoteDocument>(
                     return Err(ErrorCode::InvalidKeywordAlias
                         .and_source(anyhow!("Invalid alias to `@context`")));
                 }
+                definition.set_iri(id);
+                let id = definition.iri();
                 // Step 16.5
                 // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
                 // as WD-json-ld11-api-20191018 has ambiguity.
@@ -251,6 +257,8 @@ async fn process_iri<L: LoadRemoteDocument>(
                     .and_source(anyhow!("Expected string as @id but got {:?}", v)))
             }
         }
+
+        return Ok(ProcessIriStatus::Continue);
     }
     // Step 17-20
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
@@ -277,13 +285,14 @@ async fn process_iri<L: LoadRemoteDocument>(
             // as WD-json-ld11-api-20191018 has ambiguity.
             if let Some(prefix_iri) = active_context.term_definition(prefix).map(Definition::iri) {
                 definition.set_iri(format!("{}{}", prefix_iri, suffix));
+            } else {
+                // Step 17.3
+                // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
+                // as WD-json-ld11-api-20191018 has ambiguity.
+                // NOTE: See <https://github.com/w3c/json-ld-api/issues/195>.
+                //assert!(is_absolute_or_blank_node_ident(term));
+                definition.set_iri(term);
             }
-            // Step 17.3
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
-            // NOTE: See <https://github.com/w3c/json-ld-api/issues/195>.
-            //assert!(is_absolute_or_blank_node_ident(term));
-            definition.set_iri(term);
         }
         // Step 18-20
         // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
@@ -321,7 +330,7 @@ async fn process_iri<L: LoadRemoteDocument>(
                 // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
                 // as WD-json-ld11-api-20191018 has ambiguity.
                 definition.set_iri("@type");
-            } else if let Some(vocab) = active_context.vocab() {
+            } else if let Nullable::Value(vocab) = active_context.vocab() {
                 // Step 20
                 // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
                 // as WD-json-ld11-api-20191018 has ambiguity.
@@ -338,7 +347,7 @@ async fn process_iri<L: LoadRemoteDocument>(
         }
     }
 
-    Ok(())
+    Ok(ProcessIriStatus::Continue)
 }
 
 /// Processes the container mapping.
@@ -485,7 +494,7 @@ async fn process_local_context<L: LoadRemoteDocument>(
         // as WD-json-ld11-api-20191018 has ambiguity.
         // FIXME: Invoke context processing algorithm. Result might not be `Value`.
         let context: Context = active_context
-            .join(processor, context, true)
+            .join_context_value(processor, context, true)
             .await
             .map_err(|e| ErrorCode::InvalidScopedContext.and_source(e))?;
         // Step 23.4
