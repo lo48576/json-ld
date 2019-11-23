@@ -153,8 +153,8 @@ async fn join_value_impl<L: LoadRemoteDocument>(
             // Step 5.1
             Value::Null => {
                 // Step 5.1.1, 5.1.2
-                result = process_single_null(active_context, override_protected, propagate, result)
-                    .await?;
+                result =
+                    process_single_null(active_context, override_protected, propagate, result)?;
             }
             // Step 5.2
             Value::String(context) => {
@@ -199,7 +199,7 @@ async fn join_value_impl<L: LoadRemoteDocument>(
 }
 
 /// Processes single context which is `null`.
-async fn process_single_null(
+fn process_single_null(
     active_context: &Context,
     override_protected: bool,
     propagate: bool,
