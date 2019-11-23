@@ -14,16 +14,18 @@ mod direction;
 
 /// Term definition.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-20191018/#dfn-term-definition> and
-/// <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#context-processing-algorithm>.
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-20191112/#dfn-term-definition> and
+/// <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#context-processing-algorithm>.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Definition {
     /// IRI mapping or reverse property.
     // This can be a non-IRI-reference (such as keywords), so use `String` here.
+    // TODO: This is an IRI or a keyword.
     iri: String,
     /// Reverse property flag.
     reverse: bool,
     /// Type mapping (optional).
+    // TODO: This is an IRI.
     ty: Option<String>,
     /// Lanugage mapping (optional).
     language: Option<Nullable<String>>,
