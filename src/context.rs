@@ -21,21 +21,21 @@ mod merge;
 
 /// JSON-LD context.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-20191018/#the-context>.
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-20191112/#the-context> and
+/// <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#context-processing-algorithm>.
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct Context {
     /// Term definitions.
     term_definitions: HashMap<String, Nullable<Definition>>,
     /// Base IRI.
     base: Nullable<IriString>,
-    /// Default base direction (optional).
-    default_base_direction: Option<definition::Direction>,
+    /// Vocabulary mapping (optional).
+    // TODO: This is an IRI.
+    vocab: Nullable<String>,
     /// Default language (optional).
     default_language: Option<String>,
-    /// Context propagation.
-    propagate: (),
-    /// Vocabulary mapping (optional).
-    vocab: Nullable<String>,
+    /// Default base direction (optional).
+    default_base_direction: Option<definition::Direction>,
     /// Previous context (optional).
     previous_context: Option<Box<Self>>,
 }
@@ -64,14 +64,24 @@ impl Context {
         self.base = base;
     }
 
-    /// Sets the default base direction.
-    pub(crate) fn set_default_base_direction(&mut self, dir: Option<definition::Direction>) {
-        self.default_base_direction = dir;
+    /// Returns the vocabulary mapping.
+    pub(crate) fn vocab(&self) -> Nullable<&str> {
+        self.vocab.as_ref().map(AsRef::as_ref)
+    }
+
+    /// Sets the vocabulary mapping.
+    pub(crate) fn set_vocab(&mut self, vocab: impl Into<Nullable<String>>) {
+        self.vocab = vocab.into();
     }
 
     /// Sets the default language.
     pub(crate) fn set_default_language(&mut self, lang: Option<String>) {
         self.default_language = lang;
+    }
+
+    /// Sets the default base direction.
+    pub(crate) fn set_default_base_direction(&mut self, dir: Option<definition::Direction>) {
+        self.default_base_direction = dir;
     }
 
     /// Returns a raw term definition.
@@ -116,16 +126,6 @@ impl Context {
             CreateTermDefOptionalParams::new(),
         )
         .await
-    }
-
-    /// Returns the vocabulary mapping.
-    pub(crate) fn vocab(&self) -> Nullable<&str> {
-        self.vocab.as_ref().map(AsRef::as_ref)
-    }
-
-    /// Sets the vocabulary mapping.
-    pub(crate) fn set_vocab(&mut self, vocab: impl Into<Nullable<String>>) {
-        self.vocab = vocab.into();
     }
 
     /// Checks whether the context has the previous context.
