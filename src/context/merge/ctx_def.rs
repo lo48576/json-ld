@@ -356,6 +356,9 @@ fn process_ctxdef_direction(
 }
 
 /// Processes `@propagate` entry of the context definition.
+///
+/// This step is error-checking only. See
+/// <https://github.com/w3c/json-ld-api/pull/208/commits/05640233bdfe3843817d04cdcbd1749b43139168>.
 fn process_ctxdef_propagate(
     processor: &ProcessorOptions,
     context: &JsonMap<String, Value>,
