@@ -6,7 +6,7 @@ use anyhow::anyhow;
 use serde_json::{Map as JsonMap, Value};
 
 use crate::{
-    context::{definition::DefinitionBuilder, Context},
+    context::{definition::DefinitionBuilder, Context, ValueWithBase},
     error::{ErrorCode, Result},
     expand::iri::ExpandIriOptions,
     iri::is_absolute_iri,
@@ -69,7 +69,7 @@ impl OptionalParams {
 pub(crate) fn create_term_definition<'a, L: LoadRemoteDocument>(
     processor: &'a Processor<L>,
     active_context: &'a mut Context,
-    local_context: &'a JsonMap<String, Value>,
+    local_context: ValueWithBase<'a, &'a JsonMap<String, Value>>,
     term: &'a str,
     defined: &'a mut HashMap<String, bool>,
     optional: OptionalParams,
@@ -93,7 +93,7 @@ pub(crate) fn create_term_definition<'a, L: LoadRemoteDocument>(
 async fn create_term_definition_impl<L: LoadRemoteDocument>(
     processor: &Processor<L>,
     active_context: &mut Context,
-    local_context: &JsonMap<String, Value>,
+    local_context: ValueWithBase<'_, &JsonMap<String, Value>>,
     term: &str,
     defined: &mut HashMap<String, bool>,
     optional: OptionalParams,
@@ -122,7 +122,7 @@ async fn create_term_definition_impl<L: LoadRemoteDocument>(
         term
     );
     // Step 3
-    let value = local_context.get(term).unwrap_or_else(|| {
+    let value = local_context.value().get(term).unwrap_or_else(|| {
         panic!(
             "Should never fail: the given `term` should have been chosen from `local_context`
              keys: term={:?}, local_context={:?}",
@@ -291,7 +291,7 @@ fn process_protected(
 async fn process_type<L: LoadRemoteDocument>(
     processor: &Processor<L>,
     active_context: &mut Context,
-    local_context: &JsonMap<String, Value>,
+    local_context: ValueWithBase<'_, &JsonMap<String, Value>>,
     defined: &mut HashMap<String, bool>,
     value: &JsonMap<String, Value>,
     definition: &mut DefinitionBuilder,

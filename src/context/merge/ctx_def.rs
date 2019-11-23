@@ -15,7 +15,7 @@ use crate::{
     context::{
         create_term_def::{create_term_definition, OptionalParams},
         definition::Direction,
-        Context,
+        Context, ValueWithBase,
     },
     error::{ErrorCode, Result},
     expand::iri::ExpandIriOptions,
@@ -31,29 +31,33 @@ pub(crate) async fn process_context_definition<L: LoadRemoteDocument>(
     remote_contexts: &mut HashSet<IriString>,
     propagate: bool,
     mut result: Context,
-    context: &JsonMap<String, Value>,
+    context: ValueWithBase<'_, &JsonMap<String, Value>>,
 ) -> Result<Context> {
     // Step 5.4: Otherwise, _context_ is a context definition.
     // Step 5.5
-    process_ctxdef_version(processor.options(), context)?;
+    process_ctxdef_version(processor.options(), context.value())?;
     // Step 5.6
-    let context: Cow<JsonMap<String, Value>> =
-        process_ctxdef_import(processor, active_context, context).await?;
+    let context: ValueWithBase<'_, Cow<'_, _>> = {
+        let new_context: Cow<JsonMap<String, Value>> =
+            process_ctxdef_import(processor, active_context, context.value()).await?;
+        context.with_new_value(new_context)
+    };
+    let context: ValueWithBase<'_, &JsonMap<_, _>> = context.with_new_value(context.value());
     // Step 5.7
-    process_ctxdef_base(remote_contexts, &mut result, &context)?;
+    process_ctxdef_base(remote_contexts, &mut result, context.value())?;
     // Step 5.8
-    process_ctxdef_vocab(processor, &mut result, &context).await?;
+    process_ctxdef_vocab(processor, &mut result, context.value()).await?;
     // Step 5.9.
-    process_ctxdef_language(&mut result, &context)?;
+    process_ctxdef_language(&mut result, context.value())?;
     // Step 5.10.
-    process_ctxdef_direction(processor.options(), &mut result, &context)?;
+    process_ctxdef_direction(processor.options(), &mut result, context.value())?;
     // Step 5.11.
     // Note that this does only error handling.
-    process_ctxdef_propagate(processor.options(), &context)?;
+    process_ctxdef_propagate(processor.options(), context.value())?;
     // Step 5.12.
     let mut defined = HashMap::new();
     // Step 5.13.
-    let protected = match context.get("@protected") {
+    let protected = match context.value().get("@protected") {
         None => None,
         Some(Value::Bool(v)) => Some(*v),
         Some(v) => {
@@ -64,14 +68,13 @@ pub(crate) async fn process_context_definition<L: LoadRemoteDocument>(
     let options = OptionalParams::new()
         .propagate(propagate)
         .protected_opt(protected);
-    for key in context.keys().map(String::as_str) {
+    for key in context.value().keys().map(String::as_str) {
         match key {
             "@base" | "@direction" | "@import" | "@language" | "@propagate" | "@protected"
             | "@version" | "@vocab" => continue,
             _ => {}
         }
-        create_term_definition(processor, &mut result, &context, key, &mut defined, options)
-            .await?;
+        create_term_definition(processor, &mut result, context, key, &mut defined, options).await?;
     }
 
     Ok(result)

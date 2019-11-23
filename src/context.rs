@@ -113,7 +113,7 @@ impl Context {
     pub(crate) async fn create_term_definition<L: LoadRemoteDocument>(
         &mut self,
         processor: &Processor<L>,
-        local_context: &JsonMap<String, Value>,
+        local_context: ValueWithBase<'_, &JsonMap<String, Value>>,
         term: &str,
         defined: &mut HashMap<String, bool>,
     ) -> Result<()> {
@@ -152,12 +152,13 @@ impl Context {
         &self,
         processor: &Processor<L>,
         local_context: &Value,
+        local_context_base_iri: &IriStr,
         override_protected: bool,
     ) -> Result<Self> {
         merge::join_value(
             processor,
             self,
-            local_context,
+            ValueWithBase::new(local_context, local_context_base_iri),
             MergeOptionalParams::new().override_protected(override_protected),
         )
         .await
@@ -174,13 +175,70 @@ impl Context {
         &self,
         processor: &Processor<L>,
         context_doc: &Value,
+        context_doc_base_iri: &IriStr,
         override_protected: bool,
     ) -> Result<Self> {
         if let Some(local_context) = context_doc.get("@context") {
-            self.join_context_value(processor, local_context, override_protected)
-                .await
+            self.join_context_value(
+                processor,
+                local_context,
+                context_doc_base_iri,
+                override_protected,
+            )
+            .await
         } else {
             Ok(self.clone())
         }
+    }
+}
+
+/// A value with the base IRI of the document containing that value.
+///
+/// See
+/// <https://github.com/w3c/json-ld-api/pull/208/commits/84de0358e1ce134520b5fd8eeb5102abea794e19>
+/// for its necessity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct ValueWithBase<'a, T> {
+    /// Value.
+    value: T,
+    /// Base IRI.
+    base: &'a IriStr,
+}
+
+impl<'a, T> ValueWithBase<'a, T> {
+    /// Creates a new `ValueWithBase`.
+    pub(crate) fn new(value: T, base: &'a IriStr) -> Self {
+        Self { value, base }
+    }
+
+    /// Applies the given function to the value, and returns the new value.
+    pub(crate) fn map<U>(self, f: impl FnOnce(T) -> U) -> ValueWithBase<'a, U> {
+        ValueWithBase {
+            value: f(self.value),
+            base: self.base,
+        }
+    }
+
+    /// Creates a new `ValueWithBase` with the same base IRI and the given new value.
+    pub(crate) fn with_new_value<U>(&self, value: U) -> ValueWithBase<'a, U> {
+        ValueWithBase {
+            value,
+            base: self.base,
+        }
+    }
+
+    /// Returns the base IRI of the document containing the value.
+    pub(crate) fn value(&self) -> &T {
+        &self.value
+    }
+
+    /// Returns the base IRI of the document containing the value.
+    pub(crate) fn into_value(self) -> T {
+        self.value
+    }
+
+    /// Returns the base IRI of the document containing the value.
+    pub(crate) fn base(&self) -> &IriStr {
+        self.base
     }
 }

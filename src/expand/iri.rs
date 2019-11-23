@@ -8,7 +8,7 @@ use iri_string::types::IriReferenceStr;
 use serde_json::{Map as JsonMap, Value};
 
 use crate::{
-    context::{Context, Definition},
+    context::{Context, Definition, ValueWithBase},
     error::{ErrorCode, Result},
     iri::{is_absolute_iri, to_prefix_and_suffix},
     json::Nullable,
@@ -29,7 +29,7 @@ enum ExpandIriContext<'a> {
         /// Active context.
         active_context: &'a mut Context,
         /// Local (currently loading) context.
-        local_context: &'a JsonMap<String, Value>,
+        local_context: ValueWithBase<'a, &'a JsonMap<String, Value>>,
         /// Terms defined and being defined.
         defined: &'a mut HashMap<String, bool>,
     },
@@ -44,7 +44,7 @@ impl<'a> ExpandIriContext<'a> {
     /// Creates a new `ExpandIriContext` with the given mutable context.
     fn mutable(
         active_context: &'a mut Context,
-        local_context: &'a JsonMap<String, Value>,
+        local_context: ValueWithBase<'a, &'a JsonMap<String, Value>>,
         defined: &'a mut HashMap<String, bool>,
     ) -> Self {
         ExpandIriContext::Mutable {
@@ -81,7 +81,7 @@ impl<'a> ExpandIriOptions<'a> {
     #[allow(dead_code)]
     pub(crate) fn mutable(
         active_context: &'a mut Context,
-        local_context: &'a JsonMap<String, Value>,
+        local_context: ValueWithBase<'a, &'a JsonMap<String, Value>>,
         defined: &'a mut HashMap<String, bool>,
     ) -> Self {
         Self {
@@ -182,9 +182,9 @@ impl<'a> ExpandIriOptions<'a> {
             defined,
         } = &mut self.context
         {
-            if local_context.contains_key(value) && defined.get(value) != Some(&true) {
+            if local_context.value().contains_key(value) && defined.get(value) != Some(&true) {
                 active_context
-                    .create_term_definition(processor, local_context, value, defined)
+                    .create_term_definition(processor, *local_context, value, defined)
                     .await?;
             }
         }

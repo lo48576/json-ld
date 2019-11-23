@@ -8,7 +8,7 @@ use serde_json::{Map as JsonMap, Value};
 use crate::{
     context::{
         definition::{Container, ContainerItem, DefinitionBuilder},
-        Context,
+        Context, ValueWithBase,
     },
     error::{ErrorCode, Result},
     expand::iri::ExpandIriOptions,
@@ -28,7 +28,7 @@ use crate::{
 pub(crate) async fn run_for_reverse<L: LoadRemoteDocument>(
     processor: &Processor<L>,
     active_context: &mut Context,
-    local_context: &JsonMap<String, Value>,
+    local_context: ValueWithBase<'_, &JsonMap<String, Value>>,
     term: &str,
     defined: &mut HashMap<String, bool>,
     value: &JsonMap<String, Value>,

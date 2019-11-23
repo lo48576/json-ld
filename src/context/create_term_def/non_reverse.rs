@@ -9,7 +9,7 @@ use crate::{
     context::{
         create_term_def::{create_term_definition, OptionalParams},
         definition::{Container, ContainerItem, Definition, DefinitionBuilder, Direction},
-        Context,
+        Context, ValueWithBase,
     },
     error::{ErrorCode, Result},
     expand::iri::ExpandIriOptions,
@@ -32,7 +32,7 @@ use crate::{
 pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
     processor: &Processor<L>,
     active_context: &mut Context,
-    local_context: &JsonMap<String, Value>,
+    local_context: ValueWithBase<'_, &JsonMap<String, Value>>,
     term: &str,
     defined: &mut HashMap<String, bool>,
     optional: OptionalParams,
@@ -74,7 +74,13 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
     // Step 23
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
-    process_local_context(processor, active_context, value, &mut definition).await?;
+    process_local_context(
+        processor,
+        active_context,
+        local_context.with_new_value(value),
+        &mut definition,
+    )
+    .await?;
     // Step 24
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
@@ -168,7 +174,7 @@ enum ProcessIriStatus {
 async fn process_iri<L: LoadRemoteDocument>(
     processor: &Processor<L>,
     active_context: &mut Context,
-    local_context: &JsonMap<String, Value>,
+    local_context: ValueWithBase<'_, &JsonMap<String, Value>>,
     term: &str,
     defined: &mut HashMap<String, bool>,
     optional: OptionalParams,
@@ -268,7 +274,7 @@ async fn process_iri<L: LoadRemoteDocument>(
             // Step 17.1
             // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
             // as WD-json-ld11-api-20191018 has ambiguity.
-            if is_compact_iri(term) && local_context.contains_key(prefix) {
+            if is_compact_iri(term) && local_context.value().contains_key(prefix) {
                 // TODO: Should optional params be default or same as callee?
                 create_term_definition(
                     processor,
@@ -473,13 +479,13 @@ fn process_index(
 async fn process_local_context<L: LoadRemoteDocument>(
     processor: &Processor<L>,
     active_context: &mut Context,
-    value: &JsonMap<String, Value>,
+    value: ValueWithBase<'_, &JsonMap<String, Value>>,
     definition: &mut DefinitionBuilder,
 ) -> Result<()> {
     // Step 23
     // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
     // as WD-json-ld11-api-20191018 has ambiguity.
-    if let Some(context) = value.get("@context") {
+    if let Some(context) = value.value().get("@context") {
         // Step 23.1
         if processor.is_processing_mode_1_0() {
             return Err(ErrorCode::InvalidTermDefinition.and_source(anyhow!(
@@ -494,7 +500,7 @@ async fn process_local_context<L: LoadRemoteDocument>(
         // as WD-json-ld11-api-20191018 has ambiguity.
         // FIXME: Invoke context processing algorithm. Result might not be `Value`.
         let context: Context = active_context
-            .join_context_value(processor, context, true)
+            .join_context_value(processor, context, value.base(), true)
             .await
             .map_err(|e| ErrorCode::InvalidScopedContext.and_source(e))?;
         // Step 23.4
