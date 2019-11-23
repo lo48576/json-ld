@@ -18,6 +18,13 @@ pub struct ProcessorOptions {
 }
 
 impl ProcessorOptions {
+    /// Creates a new `ProcessorOptions` from the given base IRI (or document IRI).
+    pub fn with_base(document_iri: impl Into<IriString>) -> Self {
+        Self {
+            document_iri: document_iri.into(),
+        }
+    }
+
     /// Returns the base IRI set by the processor.
     pub(crate) fn document_iri(&self) -> &IriStr {
         self.document_iri.as_ref()
@@ -70,14 +77,30 @@ impl ProcessorOptions {
     /// specified.
     pub(crate) fn base<'a>(&'a self, context: &'a Context) -> Option<Cow<'a, IriStr>> {
         match context.base() {
-            Some(Nullable::Value(context_base)) => match context_base.to_iri() {
+            Nullable::Value(context_base) => match context_base.to_iri() {
                 Ok(iri) => Some(Cow::Borrowed(iri)),
                 Err(_) => Some(Cow::Owned(
                     context_base.resolve_against(self.document_iri().to_absolute()),
                 )),
             },
-            Some(Nullable::Null) => None,
-            None => Some(Cow::Borrowed(self.document_iri())),
+            Nullable::Null => None,
+        }
+    }
+
+    /// Returns the limit of number of remote contexts.
+    ///
+    /// If `Some(n)` is returned, `n` remote contexts is allowed, and one more remote context will
+    /// be rejected.
+    /// `None` means there are no limits.
+    pub(crate) fn allowed_max_remote_context(&self) -> Option<usize> {
+        unimplemented!()
+    }
+
+    /// Creates a processor from the option and the given loader.
+    pub fn build<L: LoadRemoteDocument>(self, loader: L) -> Processor<L> {
+        Processor {
+            options: self,
+            loader,
         }
     }
 }
@@ -124,5 +147,13 @@ impl<L: LoadRemoteDocument> Processor<L> {
     /// specified.
     pub(crate) fn base<'a>(&'a self, context: &'a Context) -> Option<Cow<'a, IriStr>> {
         self.options().base(context)
+    }
+
+    /// Checks if the number of context exceeds the processor limit.
+    pub(crate) fn is_remote_context_limit_exceeded(&self, num_ctx: usize) -> bool {
+        match self.options().allowed_max_remote_context() {
+            Some(max_allowed) => num_ctx > max_allowed,
+            None => false,
+        }
     }
 }

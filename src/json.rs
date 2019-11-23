@@ -15,3 +15,11 @@ pub(crate) fn single_entry_map(
     map.insert(id.into(), value.into());
     map
 }
+
+/// Converts the given JSON value to a slice of elements.
+pub(crate) fn to_ref_array(v: &Value) -> &[Value] {
+    match v {
+        Value::Array(v) => v,
+        v => std::slice::from_ref(v),
+    }
+}

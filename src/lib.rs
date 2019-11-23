@@ -11,7 +11,6 @@ pub use self::{
     context::Context,
     error::{Error, ErrorCode, Result},
     processor::{Processor, ProcessorOptions},
-    remote::{LoadRemoteDocument, RemoteDocument},
 };
 
 pub(crate) mod context;
@@ -20,4 +19,4 @@ pub(crate) mod expand;
 pub(crate) mod iri;
 pub(crate) mod json;
 pub(crate) mod processor;
-pub(crate) mod remote;
+pub mod remote;
