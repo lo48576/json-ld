@@ -1,6 +1,6 @@
 //! IRI expansion.
 //!
-//! See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#iri-expansion>.
+//! See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#iri-expansion>.
 
 use std::{borrow::Cow, collections::HashMap};
 
@@ -203,7 +203,7 @@ impl<'a> ExpandIriOptions<'a> {
     ///     + This means the value is successfully expanded to `null`.
     /// * `Err(_)`
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#iri-expansion>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#iri-expansion>.
     pub(crate) async fn expand_str<L: LoadRemoteDocument>(
         self,
         processor: &Processor<L>,
@@ -214,7 +214,7 @@ impl<'a> ExpandIriOptions<'a> {
 
     /// Runs IRI expansion algorithm for string value and returns JSON value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#iri-expansion>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#iri-expansion>.
     #[allow(dead_code)]
     pub(crate) async fn expand_to_json<L: LoadRemoteDocument>(
         self,

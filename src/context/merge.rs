@@ -61,7 +61,7 @@ impl Default for OptionalParams {
 
 /// Runs context processing algorithm and returns a new context.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#context-processing-algorithm>.
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#context-processing-algorithm>.
 ///
 /// This is a wrapper for modules outside this module.
 pub(crate) async fn join_value<L: LoadRemoteDocument>(
@@ -90,7 +90,7 @@ pub(crate) async fn join_value<L: LoadRemoteDocument>(
 
 /// Runs context processing algorithm and returns a new context.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#context-processing-algorithm>.
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#context-processing-algorithm>.
 ///
 /// This is a wrapper for recursive call.
 fn join_value_impl_recursive<'a, L: LoadRemoteDocument>(
@@ -118,7 +118,7 @@ fn join_value_impl_recursive<'a, L: LoadRemoteDocument>(
 
 /// Runs context processing algorithm and returns a new context.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#context-processing-algorithm>.
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#context-processing-algorithm>.
 async fn join_value_impl<L: LoadRemoteDocument>(
     processor: &Processor<L>,
     active_context: &Context,

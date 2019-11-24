@@ -45,7 +45,7 @@ pub trait LoadRemoteDocument: Send + Sync {
 
 /// Options for `LoadRemoteDocument::load()`.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#loaddocumentoptions>.
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#loaddocumentoptions>.
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LoadDocumentOptions {
     /// A flag to let the loader extract JSON-LD script elements in HTML, if necessary.

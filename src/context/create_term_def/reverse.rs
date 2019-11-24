@@ -21,7 +21,7 @@ use crate::{
 
 /// Runs rest of the create term definition algorithm for the case `@reverse` exists.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#create-term-definition>
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#create-term-definition>
 // Step 14
 #[allow(clippy::too_many_arguments)] // TODO: FIXME
 pub(crate) async fn run_for_reverse<L: LoadRemoteDocument>(

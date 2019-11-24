@@ -1,6 +1,6 @@
 //! JSON-LD context.
 //!
-//! See <https://www.w3.org/TR/2019/WD-json-ld11-20191018/#the-context>.
+//! See <https://www.w3.org/TR/2019/WD-json-ld11-20191112/#the-context>.
 
 use std::collections::HashMap;
 
@@ -109,7 +109,7 @@ impl Context {
 
     /// Runs create term definition algorithm.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#create-term-definition>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#create-term-definition>.
     pub(crate) async fn create_term_definition<L: LoadRemoteDocument>(
         &mut self,
         processor: &Processor<L>,
@@ -147,7 +147,7 @@ impl Context {
     /// If you want to pass a JSON value which contains `@context` entry, use
     /// `Context::join_context_document` instead.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#context-processing-algorithm>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#context-processing-algorithm>.
     pub async fn join_context_value<L: LoadRemoteDocument>(
         &self,
         processor: &Processor<L>,
@@ -170,7 +170,7 @@ impl Context {
     /// If you want to pass a value associated to `@context` key, use `Context::join_context_value`
     /// instead.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#context-processing-algorithm>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#context-processing-algorithm>.
     pub async fn join_context_document<L: LoadRemoteDocument>(
         &self,
         processor: &Processor<L>,

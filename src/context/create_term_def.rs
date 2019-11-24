@@ -66,7 +66,7 @@ impl OptionalParams {
 
 /// Runs create term definition algorithm.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#create-term-definition>
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#create-term-definition>
 pub(crate) fn create_term_definition<'a, L: LoadRemoteDocument>(
     processor: &'a Processor<L>,
     active_context: &'a mut Context,
@@ -90,7 +90,7 @@ pub(crate) fn create_term_definition<'a, L: LoadRemoteDocument>(
 
 /// Runs create term definition algorithm.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#create-term-definition>
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#create-term-definition>
 async fn create_term_definition_impl<L: LoadRemoteDocument>(
     processor: &Processor<L>,
     active_context: &mut Context,

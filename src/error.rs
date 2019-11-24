@@ -9,108 +9,108 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 /// Error code for JSON-LD processing.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#jsonlderrorcode>.
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#jsonlderrorcode>.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ErrorCode {
     /// Colliding keywords.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-colliding-keywords>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-colliding-keywords>.
     CollidingKeywords,
     /// Conflicting indexes.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-conflicting-indexes>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-conflicting-indexes>.
     ConflictingIndexes,
     /// Context overflow.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-context-overflow>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-context-overflow>.
     ContextOverflow,
     /// Cyclic IRI mapping.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-cyclic-iri-mapping>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-cyclic-iri-mapping>.
     CyclicIriMapping,
     /// Invalid base direction.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dfn-invalid-base-direction>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dfn-invalid-base-direction>.
     InvalidBaseDirection,
     /// Invalid base IRI.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-base-iri>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-base-iri>.
     InvalidBaseIri,
     /// Invalid container mapping.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-container-mapping>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-container-mapping>.
     InvalidContainerMapping,
     /// Invalid context entry.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-context-entry>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-context-entry>.
     InvalidContextEntry,
     /// Invalid context nullification.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-context-nullification>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-context-nullification>.
     InvalidContextNullification,
     /// Invalid default language.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-default-language>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-default-language>.
     InvalidDefaultLanguage,
     /// Invalid `@id` value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-@id-value>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-@id-value>.
     InvalidIdValue,
     /// Invalid `@import` value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-@import-value>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-@import-value>.
     InvalidImportValue,
     /// Invalid `@included` value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-@included-value>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-@included-value>.
     InvalidIncludedValue,
     /// Invalid `@index` value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-@index-value>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-@index-value>.
     InvalidIndexValue,
     /// Invalid IRI mapping.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-iri-mapping>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-iri-mapping>.
     InvalidIriMapping,
     /// Invalid JSON literal.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-json-literal>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-json-literal>.
     InvalidJsonLiteral,
     /// Invalid keyword alias.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-keyword-alias>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-keyword-alias>.
     InvalidKeywordAlias,
     /// Invalid language map value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-language-map-value>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-language-map-value>.
     InvalidLanguageMapValue,
     /// Invalid language mapping.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-language-mapping>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-language-mapping>.
     InvalidLanguageMapping,
     /// Invalid language-tagged string.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-language-tagged-string>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-language-tagged-string>.
     InvalidLanguageTaggedString,
     /// Invalid language-tagged value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-language-tagged-value>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-language-tagged-value>.
     InvalidLanguageTaggedValue,
     /// Invalid local context.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-local-context>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-local-context>.
     InvalidLocalContext,
     /// Invalid `@nest` value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-@nest-value>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-@nest-value>.
     InvalidNestValue,
     /// Invalid `@prefix` value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-@prefix-value>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-@prefix-value>.
     InvalidPrefixValue,
     /// Invalid `@propagate` value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-@propagate-value>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-@propagate-value>.
     InvalidPropagateValue,
     /// Invalid `@protected` value.
     ///
@@ -118,95 +118,95 @@ pub enum ErrorCode {
     InvalidProtectedValue,
     /// Invalid remote context.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-remote-context>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-remote-context>.
     InvalidRemoteContext,
     /// Invalid reverse property.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-reverse-property>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-reverse-property>.
     InvalidReverseProperty,
     /// Invalid reverse property map.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-reverse-property-map>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-reverse-property-map>.
     InvalidReversePropertyMap,
     /// Invalid reverse property value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-reverse-property-value>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-reverse-property-value>.
     InvalidReversePropertyValue,
     /// Invalid `@reverse` value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-@reverse-value>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-@reverse-value>.
     InvalidReverseValue,
     /// Invalid scoped context.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-scoped-context>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-scoped-context>.
     InvalidScopedContext,
     /// Invalid script element.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-script-element>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-script-element>.
     InvalidScriptElement,
     /// Invalid set or list object.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-set-or-list-object>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-set-or-list-object>.
     InvalidSetOrListObject,
     /// Invalid term definition.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-term-definition>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-term-definition>.
     InvalidTermDefinition,
     /// Invalid type mapping.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-type-mapping>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-type-mapping>.
     InvalidTypeMapping,
     /// Invalid type value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-type-value>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-type-value>.
     InvalidTypeValue,
     /// Invalid typed value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-typed-value>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-typed-value>.
     InvalidTypedValue,
     /// Invalid value object.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-value-object>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-value-object>.
     InvalidValueObject,
     /// Invalid value object value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-value-object-value>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-value-object-value>.
     InvalidValueObjectValue,
     /// Invalid `@version` value.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-@version-value>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-@version-value>.
     InvalidVersionValue,
     /// Invalid vocab mapping.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-vocab-mapping>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-invalid-vocab-mapping>.
     InvalidVocabMapping,
     /// IRI confused with prefix.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-iri-confused-with-prefix>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-iri-confused-with-prefix>.
     IriConfusedWithPrefix,
     /// Keyword redefinition.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-keyword-redefinition>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-keyword-redefinition>.
     KeywordRedefinition,
     /// Loading document failed.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-loading-document-failed>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-loading-document-failed>.
     LoadingDocumentFailed,
     /// Loading remote context failed.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-loading-remote-context-failed>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-loading-remote-context-failed>.
     LoadingRemoteContextFailed,
     /// Multiple context link headers.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-multiple-context-link-headers>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-multiple-context-link-headers>.
     MultipleContextLinkHeaders,
     /// Processing mode conflict.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-processing-mode-conflict>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-processing-mode-conflict>.
     ProcessingModeConflict,
     /// Protected term redefinition.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-protected-term-redefinition>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#dom-jsonlderrorcode-protected-term-redefinition>.
     ProtectedTermRedefinition,
     /// Uncategorized errors (not specified in the spec).
     ///
