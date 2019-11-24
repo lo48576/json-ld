@@ -1,6 +1,6 @@
 //! JSON-LD processor.
 //!
-//! See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#the-jsonldprocessor-interface>.
+//! See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#the-jsonldprocessor-interface>.
 
 use std::borrow::Cow;
 
@@ -38,11 +38,11 @@ impl ProcessorOptions {
 
     /// Checks if the given string is a keyword.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-20191018/#syntax-tokens-and-keywords>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-20191112/#syntax-tokens-and-keywords>.
     pub(crate) fn is_keyword(&self, s: &str) -> bool {
         /// Keywords in JSON-LD 1.1.
         ///
-        /// See <https://www.w3.org/TR/2019/WD-json-ld11-20191018/#syntax-tokens-and-keywords>.
+        /// See <https://www.w3.org/TR/2019/WD-json-ld11-20191112/#syntax-tokens-and-keywords>.
         const KEYWORDS_1_1: &[&str] = &[
             "@base",
             "@container",
@@ -107,8 +107,8 @@ impl ProcessorOptions {
 
 /// JSON-LD processor.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#the-jsonldprocessor-interface>
-/// and <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#the-jsonldoptions-type>.
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#the-jsonldprocessor-interface>
+/// and <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#the-jsonldoptions-type>.
 pub struct Processor<L> {
     /// Processor options (except a loader).
     options: ProcessorOptions,
@@ -136,7 +136,7 @@ impl<L: LoadRemoteDocument> Processor<L> {
 
     /// Checks if the given string is a keyword.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-20191018/#syntax-tokens-and-keywords>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-20191112/#syntax-tokens-and-keywords>.
     pub(crate) fn is_keyword(&self, s: &str) -> bool {
         self.options().is_keyword(s)
     }

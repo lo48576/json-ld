@@ -8,11 +8,11 @@ use std::{
 };
 
 use anyhow::anyhow;
-use iri_string::types::{IriReferenceStr, IriString};
+use iri_string::types::{IriReferenceStr, IriStr, IriString};
 use serde_json::Value;
 
 use crate::{
-    context::Context,
+    context::{Context, ValueWithBase},
     error::{ErrorCode, Result},
     json::to_ref_array,
     processor::Processor,
@@ -61,13 +61,13 @@ impl Default for OptionalParams {
 
 /// Runs context processing algorithm and returns a new context.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#context-processing-algorithm>.
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#context-processing-algorithm>.
 ///
 /// This is a wrapper for modules outside this module.
 pub(crate) async fn join_value<L: LoadRemoteDocument>(
     processor: &Processor<L>,
     active_context: &Context,
-    local_context: &Value,
+    local_context: ValueWithBase<'_, &Value>,
     optional: OptionalParams,
 ) -> Result<Context> {
     let OptionalParams {
@@ -90,13 +90,13 @@ pub(crate) async fn join_value<L: LoadRemoteDocument>(
 
 /// Runs context processing algorithm and returns a new context.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#context-processing-algorithm>.
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#context-processing-algorithm>.
 ///
 /// This is a wrapper for recursive call.
 fn join_value_impl_recursive<'a, L: LoadRemoteDocument>(
     processor: &'a Processor<L>,
     active_context: &'a Context,
-    local_context: &'a Value,
+    local_context: ValueWithBase<'a, &'a Value>,
     remote_contexts: HashSet<IriString>,
     override_protected: bool,
     propagate: bool,
@@ -118,11 +118,11 @@ fn join_value_impl_recursive<'a, L: LoadRemoteDocument>(
 
 /// Runs context processing algorithm and returns a new context.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#context-processing-algorithm>.
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#context-processing-algorithm>.
 async fn join_value_impl<L: LoadRemoteDocument>(
     processor: &Processor<L>,
     active_context: &Context,
-    local_context: &Value,
+    local_context: ValueWithBase<'_, &Value>,
     mut remote_contexts: HashSet<IriString>,
     override_protected: bool,
     propagate: bool,
@@ -137,6 +137,7 @@ async fn join_value_impl<L: LoadRemoteDocument>(
     // > If _local context_ is an object containing the member `@propagate`, its value MUST be
     // > boolean `true` or `false`, set _propagate_ to that value.
     let propagate = local_context
+        .value()
         .get("@propagate")
         .and_then(Value::as_bool)
         .unwrap_or(propagate);
@@ -145,29 +146,28 @@ async fn join_value_impl<L: LoadRemoteDocument>(
         result.previous_context = Some(Box::new(active_context.clone()));
     }
     // Step 4
-    let local_context = to_ref_array(local_context);
+    let local_context = local_context.map(to_ref_array);
     // Step 5
-    for context in local_context {
+    for context in local_context.into_value() {
         // Step 5.1-
         match context {
             // Step 5.1
             Value::Null => {
                 // Step 5.1.1, 5.1.2
-                result = process_single_null(active_context, override_protected, propagate, result)
-                    .await?;
+                result =
+                    process_single_null(active_context, override_protected, propagate, result)?;
             }
             // Step 5.2
             Value::String(context) => {
                 // Step 5.2.1-5.2.6
                 result = process_single_string(
                     processor,
-                    active_context,
                     &mut remote_contexts,
                     override_protected,
                     propagate,
                     remote_contexts_cache,
                     result,
-                    context,
+                    local_context.with_new_value(context),
                 )
                 .await?;
                 // Step 5.2.7: Continue with the next _context_.
@@ -181,7 +181,7 @@ async fn join_value_impl<L: LoadRemoteDocument>(
                     &mut remote_contexts,
                     propagate,
                     result,
-                    context,
+                    local_context.with_new_value(context),
                 )
                 .await?;
             }
@@ -199,7 +199,7 @@ async fn join_value_impl<L: LoadRemoteDocument>(
 }
 
 /// Processes single context which is `null`.
-async fn process_single_null(
+fn process_single_null(
     active_context: &Context,
     override_protected: bool,
     propagate: bool,
@@ -224,27 +224,25 @@ async fn process_single_null(
 #[allow(clippy::too_many_arguments)] // TODO: FIXME
 async fn process_single_string<L: LoadRemoteDocument>(
     processor: &Processor<L>,
-    active_context: &Context,
     remote_contexts: &mut HashSet<IriString>,
     override_protected: bool,
     propagate: bool,
     remote_contexts_cache: &mut HashMap<IriString, Arc<RemoteDocument>>,
     mut result: Context,
-    context: &str,
+    context: ValueWithBase<'_, &str>,
 ) -> Result<Context> {
     use std::collections::hash_map::Entry;
 
     // Step 5.2.1
-    let base = match processor.base(&active_context) {
-        Some(v) => v,
-        None => unimplemented!("FIXME: What to do if no base IRI available?"),
+    let context = {
+        let base: &IriStr = context.base();
+        let context: &IriReferenceStr = IriReferenceStr::new(context.value()).map_err(|e| {
+            ErrorCode::Uncategorized
+                .and_source(e)
+                .context(format!("Expected IRI reference, but got {:?}", context))
+        })?;
+        context.resolve_against(base.to_absolute())
     };
-    let context: &IriReferenceStr = IriReferenceStr::new(context).map_err(|e| {
-        ErrorCode::Uncategorized
-            .and_source(e)
-            .context(format!("Expected IRI reference, but got {:?}", context))
-    })?;
-    let context: IriString = context.resolve_against(base.to_absolute());
     // Step 5.2.2
     if !processor.is_remote_context_limit_exceeded(remote_contexts.len()) {
         return Err(ErrorCode::ContextOverflow.and_source(anyhow!(
@@ -274,6 +272,7 @@ async fn process_single_string<L: LoadRemoteDocument>(
         }
     };
     // Step 5.2.5
+    let context_iri = context;
     let context = remote_doc.document().get("@context").ok_or_else(|| {
         ErrorCode::InvalidRemoteContext.and_source(anyhow!("doc = {:?}", remote_doc))
     })?;
@@ -281,7 +280,7 @@ async fn process_single_string<L: LoadRemoteDocument>(
     result = join_value_impl_recursive(
         processor,
         &result,
-        context,
+        ValueWithBase::new(context, &context_iri),
         remote_contexts.clone(),
         override_protected,
         propagate,

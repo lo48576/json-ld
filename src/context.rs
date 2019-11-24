@@ -1,6 +1,6 @@
 //! JSON-LD context.
 //!
-//! See <https://www.w3.org/TR/2019/WD-json-ld11-20191018/#the-context>.
+//! See <https://www.w3.org/TR/2019/WD-json-ld11-20191112/#the-context>.
 
 use std::collections::HashMap;
 
@@ -21,21 +21,21 @@ mod merge;
 
 /// JSON-LD context.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-20191018/#the-context>.
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-20191112/#the-context> and
+/// <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#context-processing-algorithm>.
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct Context {
     /// Term definitions.
     term_definitions: HashMap<String, Nullable<Definition>>,
     /// Base IRI.
     base: Nullable<IriString>,
-    /// Default base direction (optional).
-    default_base_direction: Option<definition::Direction>,
+    /// Vocabulary mapping (optional).
+    // TODO: This is an IRI.
+    vocab: Nullable<String>,
     /// Default language (optional).
     default_language: Option<String>,
-    /// Context propagation.
-    propagate: (),
-    /// Vocabulary mapping (optional).
-    vocab: Nullable<String>,
+    /// Default base direction (optional).
+    default_base_direction: Option<definition::Direction>,
     /// Previous context (optional).
     previous_context: Option<Box<Self>>,
 }
@@ -64,14 +64,24 @@ impl Context {
         self.base = base;
     }
 
-    /// Sets the default base direction.
-    pub(crate) fn set_default_base_direction(&mut self, dir: Option<definition::Direction>) {
-        self.default_base_direction = dir;
+    /// Returns the vocabulary mapping.
+    pub(crate) fn vocab(&self) -> Nullable<&str> {
+        self.vocab.as_ref().map(AsRef::as_ref)
+    }
+
+    /// Sets the vocabulary mapping.
+    pub(crate) fn set_vocab(&mut self, vocab: impl Into<Nullable<String>>) {
+        self.vocab = vocab.into();
     }
 
     /// Sets the default language.
     pub(crate) fn set_default_language(&mut self, lang: Option<String>) {
         self.default_language = lang;
+    }
+
+    /// Sets the default base direction.
+    pub(crate) fn set_default_base_direction(&mut self, dir: Option<definition::Direction>) {
+        self.default_base_direction = dir;
     }
 
     /// Returns a raw term definition.
@@ -99,11 +109,11 @@ impl Context {
 
     /// Runs create term definition algorithm.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#create-term-definition>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#create-term-definition>.
     pub(crate) async fn create_term_definition<L: LoadRemoteDocument>(
         &mut self,
         processor: &Processor<L>,
-        local_context: &JsonMap<String, Value>,
+        local_context: ValueWithBase<'_, &JsonMap<String, Value>>,
         term: &str,
         defined: &mut HashMap<String, bool>,
     ) -> Result<()> {
@@ -116,16 +126,6 @@ impl Context {
             CreateTermDefOptionalParams::new(),
         )
         .await
-    }
-
-    /// Returns the vocabulary mapping.
-    pub(crate) fn vocab(&self) -> Nullable<&str> {
-        self.vocab.as_ref().map(AsRef::as_ref)
-    }
-
-    /// Sets the vocabulary mapping.
-    pub(crate) fn set_vocab(&mut self, vocab: impl Into<Nullable<String>>) {
-        self.vocab = vocab.into();
     }
 
     /// Checks whether the context has the previous context.
@@ -147,17 +147,18 @@ impl Context {
     /// If you want to pass a JSON value which contains `@context` entry, use
     /// `Context::join_context_document` instead.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#context-processing-algorithm>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#context-processing-algorithm>.
     pub async fn join_context_value<L: LoadRemoteDocument>(
         &self,
         processor: &Processor<L>,
         local_context: &Value,
+        local_context_base_iri: &IriStr,
         override_protected: bool,
     ) -> Result<Self> {
         merge::join_value(
             processor,
             self,
-            local_context,
+            ValueWithBase::new(local_context, local_context_base_iri),
             MergeOptionalParams::new().override_protected(override_protected),
         )
         .await
@@ -169,18 +170,75 @@ impl Context {
     /// If you want to pass a value associated to `@context` key, use `Context::join_context_value`
     /// instead.
     ///
-    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#context-processing-algorithm>.
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#context-processing-algorithm>.
     pub async fn join_context_document<L: LoadRemoteDocument>(
         &self,
         processor: &Processor<L>,
         context_doc: &Value,
+        context_doc_base_iri: &IriStr,
         override_protected: bool,
     ) -> Result<Self> {
         if let Some(local_context) = context_doc.get("@context") {
-            self.join_context_value(processor, local_context, override_protected)
-                .await
+            self.join_context_value(
+                processor,
+                local_context,
+                context_doc_base_iri,
+                override_protected,
+            )
+            .await
         } else {
             Ok(self.clone())
         }
+    }
+}
+
+/// A value with the base IRI of the document containing that value.
+///
+/// See
+/// <https://github.com/w3c/json-ld-api/pull/208/commits/84de0358e1ce134520b5fd8eeb5102abea794e19>
+/// for its necessity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct ValueWithBase<'a, T> {
+    /// Value.
+    value: T,
+    /// Base IRI.
+    base: &'a IriStr,
+}
+
+impl<'a, T> ValueWithBase<'a, T> {
+    /// Creates a new `ValueWithBase`.
+    pub(crate) fn new(value: T, base: &'a IriStr) -> Self {
+        Self { value, base }
+    }
+
+    /// Applies the given function to the value, and returns the new value.
+    pub(crate) fn map<U>(self, f: impl FnOnce(T) -> U) -> ValueWithBase<'a, U> {
+        ValueWithBase {
+            value: f(self.value),
+            base: self.base,
+        }
+    }
+
+    /// Creates a new `ValueWithBase` with the same base IRI and the given new value.
+    pub(crate) fn with_new_value<U>(&self, value: U) -> ValueWithBase<'a, U> {
+        ValueWithBase {
+            value,
+            base: self.base,
+        }
+    }
+
+    /// Returns the base IRI of the document containing the value.
+    pub(crate) fn value(&self) -> &T {
+        &self.value
+    }
+
+    /// Returns the base IRI of the document containing the value.
+    pub(crate) fn into_value(self) -> T {
+        self.value
+    }
+
+    /// Returns the base IRI of the document containing the value.
+    pub(crate) fn base(&self) -> &IriStr {
+        self.base
     }
 }
