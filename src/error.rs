@@ -112,6 +112,10 @@ pub enum ErrorCode {
     ///
     /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-@propagate-value>.
     InvalidPropagateValue,
+    /// Invalid `@protected` value.
+    ///
+    /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#jsonlderrorcode>.
+    InvalidProtectedValue,
     /// Invalid remote context.
     ///
     /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#dom-jsonlderrorcode-invalid-remote-context>.
@@ -239,6 +243,7 @@ impl ErrorCode {
             Self::InvalidNestValue => "invalid @nest value",
             Self::InvalidPrefixValue => "invalid @prefix value",
             Self::InvalidPropagateValue => "invalid @propagate value",
+            Self::InvalidProtectedValue => "invalid @protected value",
             Self::InvalidRemoteContext => "invalid remote context",
             Self::InvalidReverseProperty => "invalid reverse property",
             Self::InvalidReversePropertyMap => "invalid reverse property map",

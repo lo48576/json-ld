@@ -20,7 +20,7 @@ mod direction;
 pub(crate) struct Definition {
     /// IRI mapping or reverse property.
     // This can be a non-IRI-reference (such as keywords), so use `String` here.
-    // TODO: This is an IRI or a keyword.
+    // TODO: This is an IRI (including a blank node identifier) or a keyword.
     iri: String,
     /// Reverse property flag.
     reverse: bool,

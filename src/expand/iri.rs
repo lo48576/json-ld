@@ -10,10 +10,11 @@ use serde_json::{Map as JsonMap, Value};
 use crate::{
     context::{Context, Definition, ValueWithBase},
     error::{ErrorCode, Result},
-    iri::{is_absolute_iri, to_prefix_and_suffix},
+    iri::{is_absolute_iri_ref, to_prefix_and_suffix},
     json::Nullable,
     processor::Processor,
     remote::LoadRemoteDocument,
+    syntax::has_form_of_keyword,
 };
 
 /// Context for IRI expansion.
@@ -229,7 +230,7 @@ impl<'a> ExpandIriOptions<'a> {
 
 /// Runs IRI expansion algorithm for string value.
 ///
-/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#iri-expansion>.
+/// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191112/#iri-expansion>.
 async fn expand_str<'a, L: LoadRemoteDocument>(
     mut options: ExpandIriOptions<'a>,
     processor: &Processor<L>,
@@ -240,7 +241,7 @@ async fn expand_str<'a, L: LoadRemoteDocument>(
         return Ok(Some(Cow::Borrowed(value)));
     }
     // Step 2
-    if value.starts_with('@') {
+    if has_form_of_keyword(value) {
         // TODO: Generate a warning.
         return Ok(None);
     }
@@ -271,10 +272,10 @@ async fn expand_str<'a, L: LoadRemoteDocument>(
     }
     // Step 6
     if let Some((prefix, suffix)) = to_prefix_and_suffix(value) {
-        // Step 6.2
-        // `value` is either an absolute IRI, a compact IRI, or a blank node identifier.
+        debug_assert!(!prefix.is_empty());
+        // Step 6.2: `value` is either an IRI, a compact IRI, or a blank node identifier.
         if prefix == "_" || suffix.starts_with("//") {
-            // `value` is already an absolute IRI or a blank node identifier.
+            // `value` is already an IRI or a blank node identifier.
             return Ok(Some(Cow::Borrowed(value)));
         }
         // Step 6.3
@@ -289,8 +290,8 @@ async fn expand_str<'a, L: LoadRemoteDocument>(
             return Ok(Some(Cow::Owned(format!("{}{}", prefix_def.iri(), suffix))));
         }
         // Step 6.5
-        if is_absolute_iri(value) {
-            // `value` is already an absolute IRI.
+        if is_absolute_iri_ref(value) {
+            // `value` is already an IRI.
             return Ok(Some(Cow::Borrowed(value)));
         }
     }
@@ -304,9 +305,9 @@ async fn expand_str<'a, L: LoadRemoteDocument>(
     if options.document_relative {
         // NOTE: This is base IRI from the active context, not the raw document IRI.
         // See <https://github.com/w3c/json-ld-api/issues/180#issuecomment-547177451>.
-        let base = match processor.base(options.active_context()) {
-            Some(base) => base,
-            None => {
+        let base = match options.active_context().base() {
+            Nullable::Value(base) => base,
+            Nullable::Null => {
                 // Not sure what to do when the base is explicitly nullified.
                 return Err(ErrorCode::Uncategorized.and_source(anyhow::anyhow!(
                     "`document_relative` is true but base IRI from the active context is `null`",

@@ -20,3 +20,4 @@ pub(crate) mod iri;
 pub(crate) mod json;
 pub(crate) mod processor;
 pub mod remote;
+pub(crate) mod syntax;

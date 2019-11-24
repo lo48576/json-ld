@@ -101,44 +101,39 @@ impl std::str::FromStr for ContainerItem {
     }
 }
 
-/// `@container` value.
+/// `@container` value coerced to be an array.
 ///
 /// This type itself is a simple container and does not do any validation.
 /// Loaders are responsible to do it.
-#[derive(Clone, Copy, Eq)]
+///
+/// About coercion to an array, see
+/// <https://github.com/w3c/json-ld-api/pull/186/commits/62d07f11f830f31864ef23ea106a0e84c0f033c8>.
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Container {
     /// Items of `@container` entry.
     items: u8,
-    /// Whether to use an array form even if there are only one item.
-    prefer_array: bool,
 }
 
 impl Container {
     /// Creates a new empty `Container`.
     fn new() -> Self {
-        Self {
-            items: 0,
-            prefer_array: false,
-        }
-    }
-
-    /// Forces the container to be in an array form, even if it contains only single item.
-    pub(crate) fn prefer_array(&mut self) {
-        self.prefer_array = true;
+        Self { items: 0 }
     }
 
     /// Returns the item and whether the container is in an array form,
     /// if there is only single item.
-    pub(crate) fn get_single_item(self) -> Option<(ContainerItem, bool)> {
+    pub(crate) fn get_single_item(self) -> Option<ContainerItem> {
         if self.len() != 1 {
             return None;
         }
-        self.iter().next().map(|item| (item, self.prefer_array))
+        // TODO: It seems `self.items` itself is what we should return, but is there a safe way to
+        // convert the `u8` to `ContainerItem`?
+        self.iter().next()
     }
 
     /// Checks whether the container has the given item.
     pub(crate) fn contains(self, v: ContainerItem) -> bool {
-        self.items & v.single_bit() != 0
+        (self.items & v.single_bit()) != 0
     }
 
     /// Returns an iterator of profiles.
@@ -152,18 +147,9 @@ impl Container {
     }
 }
 
-impl PartialEq for Container {
-    fn eq(&self, rhs: &Container) -> bool {
-        self.items == rhs.items && (self.len() != 1 || self.prefer_array == rhs.prefer_array)
-    }
-}
-
 impl fmt::Debug for Container {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.get_single_item() {
-            Some((item, false)) => item.fmt(f),
-            _ => f.debug_set().entries(self.iter()).finish(),
-        }
+        f.debug_set().entries(self.iter()).finish()
     }
 }
 
@@ -171,7 +157,6 @@ impl From<ContainerItem> for Container {
     fn from(v: ContainerItem) -> Self {
         Self {
             items: v.single_bit(),
-            prefer_array: false,
         }
     }
 }
@@ -200,10 +185,6 @@ impl TryFrom<&Value> for Container {
                 .iter()
                 .map(ContainerItem::try_from)
                 .collect::<Result<Container, _>>()
-                .map(|mut c| {
-                    c.prefer_array();
-                    c
-                })
                 .map_err(|e| e.prepend("Unexpected value in array")),
             v => Err(ContainerLoadError::new(format_args!(
                 "Unexpected value {:?}",
@@ -274,48 +255,6 @@ mod tests {
         assert_eq!(
             v0, v1,
             "Equality comparison of `Conatiner`s should be order-agnostic"
-        );
-    }
-
-    #[test]
-    fn container_ne_multiple_single_and_array() {
-        let v0 = Container::from(ContainerItem::Id);
-        let mut v1 = Container::from(ContainerItem::Id);
-        assert_eq!(v0, v1);
-        v1.prefer_array();
-        assert_ne!(
-            v0, v1,
-            "`prefer_array` flag should be checked for containers with single items"
-        );
-    }
-
-    #[test]
-    fn container_eq_multiple() {
-        let v0: Container = [ContainerItem::Graph, ContainerItem::Id]
-            .iter()
-            .copied()
-            .collect();
-        let mut v1: Container = [ContainerItem::Graph, ContainerItem::Id]
-            .iter()
-            .copied()
-            .collect();
-        assert_eq!(v0, v1);
-        v1.prefer_array();
-        assert_eq!(
-            v0, v1,
-            "`prefer_array` flag should be ignored for containers with multiple items"
-        );
-    }
-
-    #[test]
-    fn container_eq_empty() {
-        let v0 = Container::new();
-        let mut v1 = Container::new();
-        assert_eq!(v0, v1);
-        v1.prefer_array();
-        assert_eq!(
-            v0, v1,
-            "`prefer_array` flag should be ignored for empty containers"
         );
     }
 }

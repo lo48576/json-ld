@@ -14,20 +14,19 @@ use crate::{
     error::{ErrorCode, Result},
     expand::iri::ExpandIriOptions,
     iri::{
-        is_absolute_iri, is_absolute_or_blank_node_ident, is_compact_iri, is_gen_delims_byte,
-        to_prefix_and_suffix,
+        is_absolute_iri_ref, is_absolute_ref_or_blank_node_ident, is_compact_iri,
+        is_gen_delims_byte, to_prefix_and_suffix,
     },
     json::Nullable,
     processor::{Processor, ProcessorOptions},
     remote::LoadRemoteDocument,
+    syntax::has_form_of_keyword,
 };
 
 /// Runs rest of the create term definition algorithm for the case `@reverse` exists.
 ///
 /// See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#create-term-definition>
-// Step 15 and after.
-// NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-// as WD-json-ld11-api-20191018 has ambiguity.
+// Step 15-
 #[allow(clippy::too_many_arguments)] // TODO: FIXME
 pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
     processor: &Processor<L>,
@@ -42,12 +41,8 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
     simple_term: bool,
 ) -> Result<()> {
     // Step 15
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     definition.set_reverse(false);
     // Step 16-20
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     let process_iri_status = process_iri(
         processor,
         active_context,
@@ -64,16 +59,10 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
         return Ok(());
     }
     // Step 21
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     process_container(processor, value, &mut definition).await?;
     // Step 22
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     process_index(processor.options(), value, &mut definition)?;
     // Step 23
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     process_local_context(
         processor,
         active_context,
@@ -82,24 +71,14 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
     )
     .await?;
     // Step 24
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     process_language(value, &mut definition)?;
     // Step 25
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     process_direction(value, &mut definition)?;
     // Step 26
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     process_nest(processor.options(), value, &mut definition)?;
     // Step 27
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     process_prefix(processor.options(), term, value, &mut definition)?;
     // Step 28
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     for key in value.keys() {
         match key.as_str() {
             "@id" | "@reverse" | "@container" | "@context" | "@language" | "@nest" | "@prefix"
@@ -111,12 +90,8 @@ pub(crate) async fn run_for_non_reverse<L: LoadRemoteDocument>(
         }
     }
     // Step 29
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     let definition = build_term_definition(optional, definition, previous_definition)?;
     // Step 30
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     active_context
         .term_definitions
         .insert(term.to_owned(), Nullable::Value(definition));
@@ -131,13 +106,9 @@ fn process_language(
     definition: &mut DefinitionBuilder,
 ) -> Result<()> {
     // Step 24
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     if let Some(language) = value.get("@language") {
         if !value.contains_key("@type") {
             // Step 24.1
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
             let language = match language {
                 Value::Null => Nullable::Null,
                 Value::String(s) => Nullable::Value(s.as_str()),
@@ -150,8 +121,6 @@ fn process_language(
             };
             // TODO: Issue a warning if `language` is not well-formed according to section 2.2.9 of BCP47.
             // Step 24.2
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
             // TODO: Processors MAY normalize language tags to lower case.
             definition.set_language(language.map(ToOwned::to_owned));
         }
@@ -183,13 +152,9 @@ async fn process_iri<L: LoadRemoteDocument>(
     simple_term: bool,
 ) -> Result<ProcessIriStatus> {
     // Step 16
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     if let Some(id) = value.get("@id").filter(|id| id.as_str() != Some(term)) {
         match id {
             // Step 16.1
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
             Value::Null => {
                 // > If value contains the `@id` entry is `null`, the term is not used for IRI
                 // > expansion, but is retained to be able to detect future redefinitions of this term.
@@ -201,19 +166,13 @@ async fn process_iri<L: LoadRemoteDocument>(
                     .insert(term.to_owned(), Nullable::Null);
             }
             // Step 16.3-
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
             Value::String(id) => {
                 // Step 16.3
-                // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-                // as WD-json-ld11-api-20191018 has ambiguity.
-                if !processor.is_keyword(id) && id.starts_with('@') {
+                if !processor.is_keyword(id) && has_form_of_keyword(id) {
                     // TODO: Generate warning.
                     return Ok(ProcessIriStatus::Stop);
                 }
                 // Step 16.4
-                // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-                // as WD-json-ld11-api-20191018 has ambiguity.
                 let id = ExpandIriOptions::mutable(active_context, local_context, defined)
                     .vocab(true)
                     .expand_str(processor, id)
@@ -222,7 +181,7 @@ async fn process_iri<L: LoadRemoteDocument>(
                         ErrorCode::InvalidIriMapping
                             .and_source(anyhow!("@id ({:?}) is expanded to `null`", id))
                     })?;
-                if !processor.is_keyword(&id) && !is_absolute_or_blank_node_ident(&id) {
+                if !processor.is_keyword(&id) && !is_absolute_ref_or_blank_node_ident(&id) {
                     return Err(ErrorCode::InvalidIriMapping.and_source(anyhow!(
                         "@id ({:?}) should be a keyword, \
                          an IRI (which is absolute), or a blank node identifier",
@@ -235,18 +194,23 @@ async fn process_iri<L: LoadRemoteDocument>(
                 definition.set_iri(id);
                 let id = definition.iri();
                 // Step 16.5
-                // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-                // as WD-json-ld11-api-20191018 has ambiguity.
-                if (!term.is_empty() && term[..(term.len() - 1)].contains(':'))
+                if (!term.is_empty() && term[1..(term.len() - 1)].contains(':'))
                     || term.contains('/')
                 {
-                    return Err(
-                        ErrorCode::InvalidIriMapping.and_source(anyhow!("term = {:?}", term))
-                    );
+                    let expanded =
+                        ExpandIriOptions::mutable(active_context, local_context, defined)
+                            .vocab(true)
+                            .expand_str(processor, term)
+                            .await?;
+                    if expanded.as_ref().map(|s| &**s) != Some(id) {
+                        return Err(ErrorCode::InvalidIriMapping.and_source(anyhow!(
+                            "expanded={:?}, term={:?}",
+                            expanded,
+                            term
+                        )));
+                    }
                 }
                 // Step 16.6
-                // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-                // as WD-json-ld11-api-20191018 has ambiguity.
                 if !term.contains(':')
                     && !term.contains('/')
                     && simple_term
@@ -256,8 +220,6 @@ async fn process_iri<L: LoadRemoteDocument>(
                 }
             }
             // Step 16.2
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
             v => {
                 return Err(ErrorCode::InvalidIriMapping
                     .and_source(anyhow!("Expected string as @id but got {:?}", v)))
@@ -267,13 +229,10 @@ async fn process_iri<L: LoadRemoteDocument>(
         return Ok(ProcessIriStatus::Continue);
     }
     // Step 17-20
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     match to_prefix_and_suffix(term) {
         Some((prefix, suffix)) => {
+            debug_assert!(!prefix.is_empty());
             // Step 17.1
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
             if is_compact_iri(term) && local_context.value().contains_key(prefix) {
                 // TODO: Should optional params be default or same as callee?
                 create_term_definition(
@@ -287,28 +246,18 @@ async fn process_iri<L: LoadRemoteDocument>(
                 .await?;
             }
             // Step 17.2
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
             if let Some(prefix_iri) = active_context.term_definition(prefix).map(Definition::iri) {
                 definition.set_iri(format!("{}{}", prefix_iri, suffix));
             } else {
                 // Step 17.3
-                // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-                // as WD-json-ld11-api-20191018 has ambiguity.
-                // NOTE: See <https://github.com/w3c/json-ld-api/issues/195>.
-                //assert!(is_absolute_or_blank_node_ident(term));
                 definition.set_iri(term);
             }
         }
         // Step 18-20
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
-        None => {
+        _ => {
             // Step 18
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
             if term.contains('/') {
-                // Step 18.1: Term is a relative IRI.
+                // Step 18.1: Term is a relative IRI reference.
                 // Step 18.2
                 let resolved = ExpandIriOptions::constant(active_context)
                     .vocab(true)
@@ -321,7 +270,7 @@ async fn process_iri<L: LoadRemoteDocument>(
                             term
                         ))
                     })?;
-                if !is_absolute_iri(&resolved) {
+                if !is_absolute_iri_ref(&resolved) {
                     return Err(ErrorCode::InvalidIriMapping.and_source(anyhow!(
                         "Expected an absolute IRI reference as resolved term, \
                          but got {:?}: term={:?}",
@@ -333,18 +282,12 @@ async fn process_iri<L: LoadRemoteDocument>(
                 }
             } else if term == "@type" {
                 // Step 19
-                // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-                // as WD-json-ld11-api-20191018 has ambiguity.
                 definition.set_iri("@type");
             } else if let Nullable::Value(vocab) = active_context.vocab() {
                 // Step 20
-                // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-                // as WD-json-ld11-api-20191018 has ambiguity.
                 definition.set_iri(format!("{}{}", vocab, term));
             } else {
                 // Step 20
-                // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-                // as WD-json-ld11-api-20191018 has ambiguity.
                 return Err(ErrorCode::InvalidIriMapping.and_source(anyhow!(
                     "term={:?}, active context has no vocab mapping",
                     term
@@ -363,59 +306,44 @@ async fn process_container<L: LoadRemoteDocument>(
     definition: &mut DefinitionBuilder,
 ) -> Result<()> {
     // Step 21
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
-    if let Some(container) = value.get("@container") {
+    if let Some(container_raw) = value.get("@container") {
+        let has_array_form = container_raw.is_array();
         // Step 21.1
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
-        let container = validate_container_non_reverse(container).await?;
+        let container = validate_container_non_reverse(container_raw).await?;
         // Step 21.2
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         if processor.is_processing_mode_1_0() {
+            if has_array_form {
+                return Err(ErrorCode::InvalidContainerMapping.and_source(anyhow!(
+                    "Expected `@container` to be a string but got {:?}, \
+                     with processing mode `json-ld-1.0`",
+                    container_raw
+                )));
+            }
             match container.get_single_item() {
-                Some((_, true)) | None => {
-                    return Err(ErrorCode::InvalidContainerMapping.and_source(anyhow!(
-                        "Expected `@container` to be a string but got {:?}, \
-                         with processing mode `json-ld-1.0`",
-                        container
-                    )));
-                }
-                Some((item @ ContainerItem::Graph, false))
-                | Some((item @ ContainerItem::Id, false))
-                | Some((item @ ContainerItem::Type, false)) => {
+                Some(item @ ContainerItem::Graph)
+                | Some(item @ ContainerItem::Id)
+                | Some(item @ ContainerItem::Type) => {
                     return Err(ErrorCode::InvalidContainerMapping.and_source(anyhow!(
                         "Unexpected `@container` value {:?} with processing mode `json-ld-1.0`",
                         item
                     )))
                 }
-                Some((_, false)) => {}
+                _ => {}
             }
         }
         // Step 21.3
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         definition.set_container(Nullable::Value(container));
         // Step 21.4
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         if definition.container_contains(ContainerItem::Type) {
             match definition.ty() {
                 None => {
                     // Step 21.4.1
-                    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-                    // as WD-json-ld11-api-20191018 has ambiguity.
                     definition.set_ty("@id");
                 }
                 // Step 21.4.2
-                // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-                // as WD-json-ld11-api-20191018 has ambiguity.
                 Some("@id") | Some("@vocab") => {}
                 Some(ty) => {
                     // Step 21.4.2
-                    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-                    // as WD-json-ld11-api-20191018 has ambiguity.
                     return Err(ErrorCode::InvalidTypeMapping.and_source(anyhow!(
                         "container = {:?}, type = {:?}",
                         container,
@@ -436,12 +364,8 @@ fn process_index(
     definition: &mut DefinitionBuilder,
 ) -> Result<()> {
     // Step 22
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     if let Some(index) = value.get("@index") {
         // Step 22.1
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         if processor.is_processing_mode_1_0()
             || !definition.container_contains(ContainerItem::Index)
         {
@@ -457,18 +381,12 @@ fn process_index(
             )));
         }
         // Step 22.2
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
-        let index = match index {
-            Value::String(s) => s,
-            v => {
-                return Err(ErrorCode::InvalidTermDefinition
-                    .and_source(anyhow!("Invalid `@index` value {:?}", v)))
-            }
-        };
+        let index = index.as_str().ok_or_else(|| {
+            ErrorCode::InvalidTermDefinition
+                .and_source(anyhow!("Invalid `@index` value {:?}", index))
+        })?;
+        // TODO: Now `index` must be a string expanding to an absolute IRI. How to check that?
         // Step 22.3
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         definition.set_index(index);
     }
 
@@ -483,8 +401,6 @@ async fn process_local_context<L: LoadRemoteDocument>(
     definition: &mut DefinitionBuilder,
 ) -> Result<()> {
     // Step 23
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     if let Some(context) = value.value().get("@context") {
         // Step 23.1
         if processor.is_processing_mode_1_0() {
@@ -493,19 +409,12 @@ async fn process_local_context<L: LoadRemoteDocument>(
             )));
         }
         // Step 23.2: `context` is already the value associated with the `@context` entry.
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         // Step 23.3
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
-        // FIXME: Invoke context processing algorithm. Result might not be `Value`.
         let context: Context = active_context
             .join_context_value(processor, context, value.base(), true)
             .await
             .map_err(|e| ErrorCode::InvalidScopedContext.and_source(e))?;
         // Step 23.4
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         definition.set_local_context(context);
     }
 
@@ -518,19 +427,12 @@ fn process_direction(
     definition: &mut DefinitionBuilder,
 ) -> Result<()> {
     // Step 25
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     if let Some(direction) = value.get("@direction") {
         if !value.contains_key("@type") {
             // Step 25.1
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
-            // FIXME: Create `Direction` type.
             let direction = Nullable::<Direction>::try_from(direction)
                 .map_err(|e| ErrorCode::InvalidBaseDirection.and_source(e))?;
             // Step 25.2
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
             definition.set_direction(direction);
         }
     }
@@ -545,20 +447,14 @@ fn process_nest(
     definition: &mut DefinitionBuilder,
 ) -> Result<()> {
     // Step 26
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     if let Some(nest) = value.get("@nest") {
         // Step 26.1
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         if processor.is_processing_mode_1_0() {
             return Err(ErrorCode::InvalidTermDefinition.and_source(anyhow!(
                 "Found `@nest` but processing mode is `json-ld-1.0`"
             )));
         }
         // Step 26.2
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         let nest = match nest {
             Value::String(s) => s.as_str(),
             v => {
@@ -584,12 +480,8 @@ fn process_prefix(
     definition: &mut DefinitionBuilder,
 ) -> Result<()> {
     // Step 27
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     if let Some(prefix) = value.get("@prefix") {
         // Step 27.1
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         if processor.is_processing_mode_1_0() {
             return Err(ErrorCode::InvalidTermDefinition.and_source(anyhow!(
                 "Found `@prefix` but processing mode is `json-ld-1.0`"
@@ -601,8 +493,6 @@ fn process_prefix(
             )));
         }
         // Step 27.2
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         let prefix = match prefix {
             Value::Bool(v) => *v,
             v => {
@@ -612,8 +502,6 @@ fn process_prefix(
         };
         definition.set_prefix(prefix);
         // Step 27.3
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         if prefix && processor.is_keyword(definition.iri()) {
             return Err(ErrorCode::InvalidTermDefinition.and_source(anyhow!(
                 "`prefix` flag is set to `true` for a definition \
@@ -633,20 +521,14 @@ fn build_term_definition(
     previous_definition: Option<Definition>,
 ) -> Result<Definition> {
     // Step 29
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     let definition = definition.build();
     if let Some(previous_definition) = previous_definition {
         if !optional.override_protected && previous_definition.is_protected() {
             // Step 29.1
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
             if !definition.eq_other_than_protected(&previous_definition) {
                 return Err(ErrorCode::ProtectedTermRedefinition.into());
             }
             // Step 29.2
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
             return Ok(previous_definition);
         }
     }
@@ -654,12 +536,10 @@ fn build_term_definition(
     Ok(definition)
 }
 
-/// Validates `@container` value.
+/// Returns the `@container` value, if validated.
 ///
 /// Returns `Ok(container)` if the value is valid, `Err(_)` otherwise.
 // Step 21.
-// NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-// as WD-json-ld11-api-20191018 has ambiguity.
 async fn validate_container_non_reverse(container: &Value) -> Result<Container> {
     let container = Container::try_from(container)
         .map_err(|e| ErrorCode::InvalidContainerMapping.and_source(e))?;

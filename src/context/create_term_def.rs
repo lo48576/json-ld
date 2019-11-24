@@ -9,10 +9,11 @@ use crate::{
     context::{definition::DefinitionBuilder, Context, ValueWithBase},
     error::{ErrorCode, Result},
     expand::iri::ExpandIriOptions,
-    iri::is_absolute_iri,
+    iri::is_absolute_iri_ref,
     json::single_entry_map,
     processor::{Processor, ProcessorOptions},
     remote::LoadRemoteDocument,
+    syntax::has_form_of_keyword,
 };
 
 use self::{non_reverse::run_for_non_reverse, reverse::run_for_reverse};
@@ -169,49 +170,31 @@ async fn create_term_definition_impl<L: LoadRemoteDocument>(
         // Keywords cannot be overridden.
         return Err(ErrorCode::KeywordRedefinition.and_source(anyhow!("term = {:?}", term)));
     }
-    if term.starts_with('@') {
+    if has_form_of_keyword(term) {
         // TODO: Generate a warning.
-        // TODO: How to "abort processing" here? No error code is explicitly specified in the spec.
-        // See <https://www.w3.org/TR/2019/WD-json-ld11-api-20191018/#algorithm-0>.
-        return Err(ErrorCode::Uncategorized
-            .and_source(anyhow!("term has the form of a keyword: term = {:?}", term)));
+        return Ok(());
     }
     // Step 6
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     // If the (previous) definition is explicit `null`, treat it as absent.
-    let previous_definition = active_context
+    let previous_definition: Option<_> = active_context
         .remove_term_definition(term)
         .and_then(Into::into);
     // Step 7-9
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     let (value, simple_term) = match value {
         // Step 7
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         Value::Null => (Cow::Owned(single_entry_map("@id", Value::Null)), false),
         // Step 8
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         Value::String(s) => (Cow::Owned(single_entry_map("@id", s.clone())), true),
         // Step 9
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         Value::Object(v) => (Cow::Borrowed(v), false),
+        // Step 9
         v => return Err(ErrorCode::InvalidTermDefinition.and_source(anyhow!("value = {:?}", v))),
     };
     // Step 10
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     let mut definition = DefinitionBuilder::new();
     // Step 11, 12
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     process_protected(processor.options(), optional, &value, &mut definition)?;
     // Step 13
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     process_type(
         processor,
         active_context,
@@ -221,10 +204,9 @@ async fn create_term_definition_impl<L: LoadRemoteDocument>(
         &mut definition,
     )
     .await?;
-    // Step 14
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
+    // Step 14-
     if let Some(reverse) = value.get("@reverse") {
+        // Step 14
         run_for_reverse(
             processor,
             active_context,
@@ -237,6 +219,7 @@ async fn create_term_definition_impl<L: LoadRemoteDocument>(
         )
         .await
     } else {
+        // Step 15-
         run_for_non_reverse(
             processor,
             active_context,
@@ -261,12 +244,8 @@ fn process_protected(
     definition: &mut DefinitionBuilder,
 ) -> Result<()> {
     // Step 11, 12
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     match value.get("@protected") {
         // Step 11
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         Some(Value::Bool(true)) => {
             if processor.is_processing_mode_1_0() {
                 return Err(ErrorCode::InvalidTermDefinition.and_source(anyhow!(
@@ -275,9 +254,16 @@ fn process_protected(
             }
             definition.set_protected(true);
         }
+        // Step 11
+        Some(Value::Bool(false)) => {}
+        // Step 11
+        Some(v) => {
+            return Err(ErrorCode::InvalidProtectedValue.and_source(anyhow!(
+                "Expected boolean or `null` as `@protected`, but got {:?}",
+                v,
+            )))
+        }
         // Step 12
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         None if optional.protected => {
             definition.set_protected(true);
         }
@@ -297,16 +283,10 @@ async fn process_type<L: LoadRemoteDocument>(
     definition: &mut DefinitionBuilder,
 ) -> Result<()> {
     // Step 13
-    // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-    // as WD-json-ld11-api-20191018 has ambiguity.
     match value.get("@type") {
         // Step 13.1
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         Some(Value::String(ty)) => {
             // Step 13.2, 13.4
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
             let ty = ExpandIriOptions::mutable(active_context, local_context, defined)
                 .vocab(true)
                 .expand_str(processor, ty)
@@ -316,8 +296,6 @@ async fn process_type<L: LoadRemoteDocument>(
                         .and_source(anyhow!("@type ({:?}) is expanded to `null`", ty))
                 })?;
             // Step 13.3
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
             if (ty == "@json" || ty == "@none") && processor.is_processing_mode_1_0() {
                 return Err(ErrorCode::InvalidTypeMapping.and_source(anyhow!(
                     "@type = {:?} while processing mode is JSON-LD-1.0",
@@ -325,9 +303,7 @@ async fn process_type<L: LoadRemoteDocument>(
                 )));
             }
             // Step 13.4, 13.5
-            // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-            // as WD-json-ld11-api-20191018 has ambiguity.
-            if ty == "@id" || ty == "@vocab" || is_absolute_iri(&ty) {
+            if ty == "@id" || ty == "@vocab" || is_absolute_iri_ref(&ty) {
                 definition.set_ty(ty);
             } else {
                 return Err(
@@ -337,8 +313,6 @@ async fn process_type<L: LoadRemoteDocument>(
         }
         None => {}
         // Step 13.1
-        // NOTE: Using <https://pr-preview.s3.amazonaws.com/w3c/json-ld-api/pull/182.html#create-term-definition>
-        // as WD-json-ld11-api-20191018 has ambiguity.
         v => return Err(ErrorCode::InvalidTypeMapping.and_source(anyhow!("@type = {:?}", v))),
     }
 
